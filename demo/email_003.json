@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "analysis_id": "analysis-demo-003",
+  "email": {
+    "email_id": "email-003",
+    "message_id": "<msg-003-2026@portal-login-sync.com>",
+    "subject": "Security Notification: Corporate Credential Sync",
+    "sender": "support@portal-login-sync.com",
+    "sender_domain": "portal-login-sync.com",
+    "recipient": "victim3@target-org.example",
+    "recipients": ["victim3@target-org.example"],
+    "timestamp": "2026-09-10T08:45:00Z"
+  },
+  "authentication": {
+    "spf": "fail",
+    "dkim": "fail",
+    "dmarc": "fail"
+  },
+  "iocs": {
+    "domains": [
+      {"value": "portal-login-sync.com", "source": "sender"},
+      {"value": "auth-gateway-relay.net", "source": "embedded_link"}
+    ],
+    "ips": [
+      {"value": "198.51.100.25", "source": "dns_resolution", "asn": "64512"}
+    ],
+    "urls": [
+      {"value": "https://auth-gateway-relay.net/login/auth", "domain": "auth-gateway-relay.net"}
+    ],
+    "hashes": [
+      {"value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "type": "sha256", "filename": "sync_tool.exe"}
+    ],
+    "ip_domain_mapping": {
+      "198.51.100.25": "portal-login-sync.com"
+    }
+  },
+  "threat_intel": {
+    "domains": {"portal-login-sync.com": {"malicious": true}},
+    "ips": {"198.51.100.25": {"reputation": "suspicious"}}
+  },
+  "detection": {
+    "classification": "phishing",
+    "risk_score": 0.94,
+    "confidence": 0.96
+  }
+}

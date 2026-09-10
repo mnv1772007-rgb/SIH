@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "analysis_id": "analysis-demo-unrelated",
+  "email": {
+    "email_id": "email-unrelated",
+    "message_id": "<msg-unrelated-2026@tech-digest.org>",
+    "subject": "Monthly Engineering Team Newsletter & Architecture Updates",
+    "sender": "newsletter@tech-digest.org",
+    "sender_domain": "tech-digest.org",
+    "recipient": "engineer@target-org.example",
+    "recipients": ["engineer@target-org.example"],
+    "timestamp": "2026-09-10T04:10:00Z"
+  },
+  "authentication": {
+    "spf": "pass",
+    "dkim": "pass",
+    "dmarc": "pass"
+  },
+  "iocs": {
+    "domains": [
+      {"value": "tech-digest.org", "source": "sender"},
+      {"value": "cdn-newsletter.io", "source": "embedded_images"}
+    ],
+    "ips": [
+      {"value": "203.0.113.88", "source": "received_header", "asn": "15169"}
+    ],
+    "urls": [
+      {"value": "https://tech-digest.org/read/september-2026", "domain": "tech-digest.org"}
+    ],
+    "hashes": [
+      {"value": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945", "type": "sha256", "filename": "newsletter.pdf"}
+    ],
+    "ip_domain_mapping": {
+      "203.0.113.88": "tech-digest.org"
+    }
+  },
+  "threat_intel": {
+    "domains": {"tech-digest.org": {"malicious": false}},
+    "ips": {"203.0.113.88": {"reputation": "clean"}}
+  },
+  "detection": {
+    "classification": "benign",
+    "risk_score": 0.05,
+    "confidence": 0.98
+  }
+}

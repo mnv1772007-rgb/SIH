@@ -1,155 +1,276 @@
-# SIH 26106 — AI-Powered Email Threat Detection Platform
-## Role 1: Email Forensics & Protocol Module
+# AI-Powered Email Threat Detection, GeoLocation & Forensic Intelligence Platform
+## Problem Statement SIH-26106 | Role 4: Graph & Campaign Correlation
 
-**Team:** IronPulse | **SIH Problem Statement:** 26106
-
----
-
-## Overview
-
-This module is the **entry point of the entire pipeline**. It ingests raw `.eml` files and produces a comprehensive `ForensicReport` JSON consumed by all 6 roles.
-
-```
-.eml file
-  → EML Parser           (MIME, attachments, encoded headers)
-  → Header Extractor     (From/To/Reply-To/Return-Path/Message-ID/X-*)
-  → Auth Validators      (SPF / DKIM / DMARC / ARC)
-  → SMTP Reconstructor   (Received-header relay chain + anomaly flags)
-  → IOC Extractor        (URLs / IPs / Domains / Attachment hashes)
-  → Origin Inferencer    (Probable sending infrastructure)
-  → ForensicReport JSON  ← consumed by Roles 2–6
-```
+> [!IMPORTANT]
+> **Forensic Attribution & Infrastructure Policy**:  
+> Correlation identifies **probable/shared hosting infrastructure** and operational behavioral relationships. **IP ownership or geolocation must NEVER be interpreted as proof of an attacker's physical identity or location.**
 
 ---
 
-## Directory Structure
+## 1. Role 4 Scope & Responsibilities
+As **Role 4: Graph & Campaign Correlation**, this module provides the graph intelligence core of the SIH 26106 platform:
+- **Graph Modeling**: Neo4j knowledge graph connecting `Email`, `Domain`, `IP`, `URL`, `Hash`, `Campaign`, and `ASN` entities.
+- **Idempotent Ingestion**: Ingests normalized threat analysis JSON from upstream modules without duplicating nodes or relationships.
+- **Explainable Campaign Clustering**: Groups related phishing and malware messages into operational campaigns using multi-feature similarity (IOC overlap, shared hosting IPs, subject lexical similarity, temporal proximity, and auth failure profiles).
+- **Infrastructure Correlation & Pivots**: Identifies shared infrastructure clusters (IPs hosting multiple threat domains, domain resolutions, hash reuse).
+- **Attribution Confidence Analysis**: Computes multi-factor correlation confidence (0.0 to 1.0) with granular evidence reasons and explicit legal/forensic limitations.
+- **Frontend Contract Hand-off (Role 6)**: Delivers JSON-serializable `{nodes: [...], edges: [...]}` graph schemas with type-prefixed IDs ready for UI canvas renderers (Cytoscape, D3, Vis.js, React Flow).
+
+### What Role 4 Does NOT Do (Role Boundaries):
+- Role 4 is **NOT** a `.eml` raw parser (handled by Role 1).
+- Role 4 does **NOT** run VirusTotal/AbuseIPDB network calls (handled by Role 3).
+- Role 4 does **NOT** manage platform authentication/RBAC or PostgreSQL tables (handled by Role 5).
+- Role 4 consumes normalized threat analysis results and transforms them into explainable graph intelligence.
+
+---
+
+## 2. Architecture & Data Flow
 
 ```
-role1_email_forensics/
-├── __init__.py
-├── main.py                     # CLI + FastAPI entrypoint
-├── schema/
-│   └── forensic_report.py      # Pydantic shared models (common API contract)
-├── parser/
-│   ├── eml_parser.py           # .eml ingestion
-│   ├── header_extractor.py     # Header field parsing
-│   └── body_extractor.py       # MIME body + attachment handling
-├── auth/
-│   ├── spf_checker.py          # SPF DNS validation
-│   ├── dkim_checker.py         # DKIM signature verification
-│   ├── dmarc_checker.py        # DMARC policy evaluation
-│   └── arc_checker.py          # ARC chain validation
-├── smtp/
-│   └── relay_reconstructor.py  # Received-header chain parsing
-├── ioc/
-│   ├── url_extractor.py        # URL harvesting
-│   ├── ip_extractor.py         # IP extraction + classification
-│   ├── domain_extractor.py     # Domain extraction + homoglyph detection
-│   └── hash_extractor.py       # MD5/SHA1/SHA256 of attachments + body
-├── origin/
-│   └── origin_inferencer.py    # Probable sending MTA detection
-└── utils/
-    └── helpers.py              # Shared regex, decoders, normalizers
-tests/
-├── sample_emails/
-│   ├── phishing_sample.eml
-│   ├── bec_sample.eml
-│   └── legitimate_sample.eml
-└── test_role1.py
++-------------------------------------------------------------------------+
+|                  Upstream Analysis Telemetry (Roles 1 & 2)              |
++-------------------------------------------------------------------------+
+                                    |
+                                    v
+                  POST /api/v1/graph/ingest
+                                    |
+                                    v
++-------------------------------------------------------------------------+
+|                      1. Ingestion & Normalization                       |
+|   - Lowercase domains, validate IPs (ipaddress), normalize URLs/hashes  |
+|   - Enforce schema constraints and indexes in Neo4j                     |
++-------------------------------------------------------------------------+
+                                    |
+                                    v
++-------------------------------------------------------------------------+
+|                     2. Neo4j Forensic Knowledge Graph                   |
+|   (:Email)-[:SENT_FROM]->(:Domain)-[:RESOLVES_TO]->(:IP)-[:BELONGS]->(:ASN)
+|   (:Email)-[:CONTAINS_DOMAIN]->(:Domain)                                |
+|   (:Email)-[:CONTAINS_URL]->(:URL)-[:HOSTED_ON_DOMAIN]->(:Domain)       |
+|   (:Email)-[:CONTAINS_HASH]->(:Hash)                                    |
++-------------------------------------------------------------------------+
+                                    |
+         +--------------------------+--------------------------+
+         |                                                     |
+         v                                                     v
++-----------------------------------+ +-----------------------------------+
+|  3. Campaign Clustering (NetworkX)| |    4. Infrastructure Correlation  |
+|  - Weighted multi-feature similarity | - IP -> Domains, Emails, Campaigns |
+|  - Connected components clustering  | - Domain -> IPs, URLs, Campaigns  |
+|  - Deterministic Campaign IDs       | - Hash -> Payload reuse pivot     |
+|  - (:Email)-[:MEMBER_OF]->(Campaign) | - Infrastructure cluster detection|
++-----------------------------------+ +-----------------------------------+
+         \                                                     /
+          \                                                   /
+           v                                                 v
++-------------------------------------------------------------------------+
+|                    5. Attribution Confidence Analyzer                   |
+|   - Evaluates: Infrastructure (35%), Temporal (25%), Behavior (25%),    |
+|     Content (15%)                                                       |
+|   - Generates explainable evidence checklist + forensic disclaimers     |
++-------------------------------------------------------------------------+
+                                    |
+                                    v
++-------------------------------------------------------------------------+
+|                      6. REST API & UI Visualization                     |
+|   - Standardized Envelope: {success, data, error, meta}                 |
+|   - Role 6 Frontend Subgraphs: {nodes: [...], edges: [...]}             |
++-------------------------------------------------------------------------+
 ```
 
 ---
 
-## Quick Start
+## 3. Graph Schema
 
+### Entity Node Types:
+| Node Label | Key Identifier | Description |
+| :--- | :--- | :--- |
+| `(:Email)` | `email_id` | Analyzed email message with subject, sender, timestamp, and risk score. |
+| `(:Domain)` | `name` | Normalized fully-qualified domain name (sender, embedded, or hosted). |
+| `(:IP)` | `address` | IPv4 or IPv6 hosting/infrastructure address. |
+| `(:URL)` | `url_hash` | Normalized destination URL and SHA-256 hash representation. |
+| `(:Hash)` | `value` | Lowercase cryptographic hash (SHA-256, MD5, SHA-1) of attachments. |
+| `(:Campaign)`| `campaign_id` | Correlated threat campaign node clustering multiple related emails. |
+| `(:ASN)` | `number` | Autonomous System Number of hosting provider. |
+
+### Directed Relationships:
+- `(:Email)-[:SENT_FROM]->(:Domain)`: Sender address domain linkage.
+- `(:Email)-[:CONTAINS_DOMAIN]->(:Domain)`: Extracted/embedded domain within message body.
+- `(:Email)-[:CONTAINS_URL]->(:URL)`: Embedded destination hyperlinks.
+- `(:URL)-[:HOSTED_ON_DOMAIN]->(:Domain)`: Target domain hosting the URL.
+- `(:Domain)-[:RESOLVES_TO]->(:IP)`: Observed DNS resolution from telemetry.
+- `(:IP)-[:BELONGS_TO_ASN]->(:ASN)`: Autonomous system routing owner.
+- `(:Email)-[:CONTAINS_HASH]->(:Hash)`: Cryptographic attachment/payload hash.
+- `(:Email)-[:MEMBER_OF]->(:Campaign)`: Membership in a correlated campaign.
+- `(:Campaign)-[:USES_DOMAIN]->(:Domain)`: Campaign infrastructure domain.
+- `(:Campaign)-[:USES_IP]->(:IP)`: Campaign infrastructure IP.
+- `(:Campaign)-[:USES_URL]->(:URL)`: Phishing/malicious campaign landing page.
+- `(:Campaign)-[:USES_HASH]->(:Hash)`: Associated campaign payload hash.
+
+---
+
+## 4. Setup & Running
+
+### Option A: Local Python Environment
 ```bash
-# Install dependencies
+# 1. Clone repository & enter directory
+git clone https://github.com/YOUR_ORGANIZATION/graph-correlation.git
+cd graph-correlation
+
+# 2. Create virtual environment
+python -m venv venv
+# On Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# On Linux / macOS:
+source venv/bin/activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# CLI — analyze a single .eml
-python -m role1_email_forensics.main --eml tests/sample_emails/phishing_sample.eml
+# 4. Configure environment
+copy .env.example .env
 
-# CLI — save report to JSON
-python -m role1_email_forensics.main --eml tests/sample_emails/phishing_sample.eml --output report.json
+# 5. Start Neo4j (via Docker or local install)
+# Default expects bolt://localhost:7687, user: neo4j, pass: change-me-to-your-secure-password
 
-# API server
-python -m role1_email_forensics.main --serve
-# → Visit http://localhost:8000/docs
+# 6. Run the FastAPI development server
+uvicorn app.main:app --reload --port 8000
+```
 
-# Tests
-pytest tests/test_role1.py -v
+### Option B: Docker Compose (One-Click)
+```bash
+docker compose up -d --build
+```
+- **FastAPI API**: http://localhost:8000
+- **Swagger Documentation**: http://localhost:8000/docs
+- **Neo4j Browser GUI**: http://localhost:7474 (user: `neo4j`, pass: `password123`)
+
+---
+
+## 5. Automated Tests & One-Click Demo
+
+### Running Automated Test Suite (Pytest)
+```bash
+# Run all unit and integration tests
+python -m pytest tests/ -v
+
+# Or use the convenience runner
+python test_api.py
+```
+
+### Running the SIH Judge Demo Script
+The one-click demo script executes an end-to-end simulation:
+1. Verifies API & Neo4j health.
+2. Ingests 4 synthetic email samples (3 coordinated phishing emails + 1 benign newsletter).
+3. Verifies ingestion idempotency (zero duplicates on re-submission).
+4. Runs campaign clustering (clusters the 3 phishing emails; leaves the benign email separate).
+5. Discovers shared hosting infrastructure.
+6. Calculates attribution confidence with evidence checklist.
+7. Prints frontend visualization URLs.
+
+```bash
+python scripts/demo.py
 ```
 
 ---
 
-## API Endpoints
+## 6. API Reference (All 20 Endpoints)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/v1/analyze` | Upload `.eml` → returns ForensicReport JSON |
-| `GET`  | `/api/v1/health`  | Health check |
-| `GET`  | `/docs`           | Swagger UI |
+All endpoints require header: `X-API-Key: dev-key` (except `/health`).
+
+### Status & Management
+| Method | URL | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Unauthenticated service and Neo4j connectivity status. |
+| `GET` | `/` | Service overview, sitemap, and attribution policy. |
+
+### Graph & Ingestion (`/api/v1/graph`)
+| Method | URL | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/graph/stats` | High-level node and relationship counts. |
+| `POST` | `/api/v1/graph/ingest` | Ingests analyzed email telemetry idempotently into Neo4j. |
+| `GET` | `/api/v1/graph/email/{email_id}` | Bounded frontend visualization subgraph for Email node. |
+| `GET` | `/api/v1/graph/email/{email_id}/path` | Traces full infrastructure path for an analyzed email. |
+| `GET` | `/api/v1/graph/path?email_id=...` | Query-param path tracing endpoint. |
+| `GET` | `/api/v1/graph/domain/{domain}` | Frontend visualization subgraph for Domain node. |
+| `GET` | `/api/v1/graph/ip/{ip_address}` | Frontend visualization subgraph for IP node. |
+| `GET` | `/api/v1/graph/hash/{hash_value}` | Frontend visualization subgraph for Hash node. |
+| `GET` | `/api/v1/graph/all` | Bounded graph export for initial canvas rendering (`limit <= 100`). |
+| `DELETE`| `/api/v1/graph/all?confirm=true`| Safe dev/demo graph reset requiring confirmation parameter. |
+
+### Campaign Correlation (`/api/v1/campaigns`)
+| Method | URL | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/campaigns/cluster` | Executes explainable multi-feature campaign clustering. |
+| `GET` | `/api/v1/campaigns` | Lists all discovered threat campaigns. |
+| `GET` | `/api/v1/campaigns/{campaign_id}` | Campaign details and shared indicator inventory. |
+| `GET` | `/api/v1/campaigns/{campaign_id}/graph` | Frontend visualization subgraph for Campaign. |
+| `GET` | `/api/v1/campaigns/{campaign_id}/confidence` | Attribution confidence score and evidence breakdown. |
+| `GET` | `/api/v1/campaigns/{campaign_id}/report` | Full forensic intelligence report for campaign. |
+
+### Infrastructure Correlation (`/api/v1/infrastructure`)
+| Method | URL | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/infrastructure/clusters` | Finds hosting IPs serving multiple threat domains or emails. |
+| `GET` | `/api/v1/infrastructure/ip/{ip}` | IP pivot: associated domains, emails, campaigns, ASN. |
+| `GET` | `/api/v1/infrastructure/domain/{domain}`| Domain pivot: resolving IPs, hosted URLs, emails, campaigns. |
+| `GET` | `/api/v1/infrastructure/asn/{asn}` | ASN pivot: associated IPs, domains, and campaigns. |
 
 ---
 
-## ForensicReport JSON Schema
-
-All 6 roles share this schema. See `role1_email_forensics/schema/forensic_report.py`.
+## 7. Frontend Integration Contract (Role 6)
+All graph subgraph endpoints return standard JSON formatted for graph rendering engines:
 
 ```json
 {
-  "report_id": "uuid4",
-  "analyzed_at": "2024-01-15T10:30:00Z",
-  "source_file": "email.eml",
-  "raw_email_sha256": "abc123...",
-  "headers": { ... },
-  "auth": {
-    "spf":   { "result": "pass|fail|softfail|neutral|none|temperror|permerror" },
-    "dkim":  { "result": "pass|fail|none" },
-    "dmarc": { "result": "pass|fail|none" },
-    "arc":   { "result": "pass|fail|none" }
+  "success": true,
+  "data": {
+    "nodes": [
+      {
+        "id": "email:email-001",
+        "type": "email",
+        "label": "Urgent: Verify Account Access",
+        "risk_score": 0.92,
+        "properties": { "sender": "security@phish-portal.com" }
+      },
+      {
+        "id": "ip:198.51.100.25",
+        "type": "ip",
+        "label": "198.51.100.25",
+        "risk_score": 0.92,
+        "properties": { "asn": "64512" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge:email:email-001->domain:phish-portal.com:SENT_FROM",
+        "source": "email:email-001",
+        "target": "domain:phish-portal.com",
+        "type": "SENT_FROM",
+        "properties": {}
+      }
+    ]
   },
-  "smtp_path": [ { "hop": 1, "from_host": "...", "by_host": "...", ... } ],
-  "iocs": {
-    "urls": [], "ips": [], "domains": [], "attachments": []
-  },
-  "origin": {
-    "probable_sending_ip": "...",
-    "note": "Probable sending MTA infrastructure — not attacker identity"
-  },
-  "risk_signals": []
+  "error": null,
+  "meta": {
+    "request_id": "8f3b60e9-b59a-412e-9d2a-4318357f12e8",
+    "schema_version": "1.0",
+    "timestamp": "2026-09-10T10:30:00Z"
+  }
 }
 ```
 
 ---
 
-## Integration Points (Common API Contract)
+## 8. Attribution & Confidence Methodology
+The attribution confidence score represents the **correlation confidence** between observed threat indicators, not real-world identity proof:
+- **Infrastructure Weight (35%)**: Measures shared hosting IPs, domains, destination URLs, and payload hashes.
+- **Temporal Weight (25%)**: Evaluates burstiness and transmission velocity within correlated windows.
+- **Behavioral Weight (25%)**: Evaluates uniformity of SPF/DKIM/DMARC authentication failure profiles.
+- **Content Weight (15%)**: Evaluates subject line lexical Jaccard similarity.
 
-- **Role 2 (AI/ML):** consumes `headers`, `iocs`, `auth`, `risk_signals`
-- **Role 3 (Threat Intel):** consumes `iocs.ips`, `iocs.domains`, `iocs.urls`
-- **Role 4 (Graph):** consumes `smtp_path`, `iocs`, `origin`, `headers`
-- **Role 5 (Backend):** stores `ForensicReport` in PostgreSQL, indexes in Neo4j
-- **Role 6 (Dashboard):** renders `auth`, `smtp_path`, `iocs`, `origin` visually
-
----
-
-## ⚠️ Attribution Disclaimer
-
-The `origin` field identifies the **probable sending mail server infrastructure** based on the first external hop in the SMTP relay chain. This is NOT the attacker's physical location or identity. IP geolocation and ASN data are probabilistic.
-
----
-
-## Dependencies
-
-| Library | Purpose |
-|---------|---------|
-| `fastapi` + `uvicorn` | REST API server |
-| `pydantic v2` | Schema validation |
-| `dnspython` | SPF/DKIM/DMARC DNS lookups |
-| `dkimpy` | DKIM signature verification |
-| `ipwhois` | IP → ASN/Org lookup |
-| `tldextract` | Domain/TLD parsing |
-| `validators` | URL validation |
-| `cryptography` | RSA/Ed25519 operations |
-| `python-dateutil` | Timezone-aware date parsing |
-| `pytest` | Unit testing |
+### Discrete Confidence Levels:
+- `0.00 – 0.39`: **Low** (Limited or fragmented evidence)
+- `0.40 – 0.69`: **Medium** (Moderate infrastructural or lexical overlap)
+- `0.70 – 0.89`: **High** (Strong shared infrastructure and burst timing)
+- `0.90 – 1.00`: **Very High** (Coordinated campaign with identical infrastructure and payload reuse)

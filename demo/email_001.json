@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "analysis_id": "analysis-demo-001",
+  "email": {
+    "email_id": "email-001",
+    "message_id": "<msg-001-2026@secure-corp-auth.com>",
+    "subject": "Urgent: Verify Your Account Access Immediately",
+    "sender": "security@secure-corp-auth.com",
+    "sender_domain": "secure-corp-auth.com",
+    "recipient": "victim1@target-org.example",
+    "recipients": ["victim1@target-org.example"],
+    "timestamp": "2026-09-10T08:15:00Z"
+  },
+  "authentication": {
+    "spf": "fail",
+    "dkim": "fail",
+    "dmarc": "fail"
+  },
+  "iocs": {
+    "domains": [
+      {"value": "secure-corp-auth.com", "source": "sender"},
+      {"value": "auth-gateway-relay.net", "source": "body"}
+    ],
+    "ips": [
+      {"value": "198.51.100.25", "source": "received_header", "asn": "64512"}
+    ],
+    "urls": [
+      {"value": "https://auth-gateway-relay.net/login/verify?session=xyz1", "domain": "auth-gateway-relay.net"}
+    ],
+    "hashes": [
+      {"value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "type": "sha256", "filename": "statement.pdf"}
+    ],
+    "ip_domain_mapping": {
+      "198.51.100.25": "auth-gateway-relay.net"
+    }
+  },
+  "threat_intel": {
+    "domains": {"auth-gateway-relay.net": {"malicious": true}},
+    "ips": {"198.51.100.25": {"reputation": "suspicious"}}
+  },
+  "detection": {
+    "classification": "phishing",
+    "risk_score": 0.92,
+    "confidence": 0.95
+  }
+}

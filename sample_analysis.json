@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "analysis_id": "analysis-sample-001",
+  "email": {
+    "email_id": "email-sample-uuid-001",
+    "message_id": "<sample.msg.2026@phish-domain.xyz>",
+    "subject": "Critical Security Alert: Immediate Verification Required",
+    "sender": "security@phish-domain.xyz",
+    "sender_domain": "phish-domain.xyz",
+    "recipient": "employee@target-enterprise.com",
+    "recipients": ["employee@target-enterprise.com"],
+    "timestamp": "2026-09-10T09:00:00Z"
+  },
+  "authentication": {
+    "spf": "fail",
+    "dkim": "fail",
+    "dmarc": "fail"
+  },
+  "iocs": {
+    "domains": [
+      {"value": "phish-domain.xyz", "source": "sender"},
+      {"value": "campaign-cdn.xyz", "source": "url"}
+    ],
+    "ips": [
+      {"value": "198.51.100.45", "source": "received_header", "asn": "64512"}
+    ],
+    "urls": [
+      {"value": "https://campaign-cdn.xyz/login/verify", "domain": "campaign-cdn.xyz"}
+    ],
+    "hashes": [
+      {"value": "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0", "type": "sha256", "filename": "security_document.pdf"}
+    ],
+    "ip_domain_mapping": {
+      "198.51.100.45": "campaign-cdn.xyz"
+    }
+  },
+  "threat_intel": {
+    "domains": {"campaign-cdn.xyz": {"category": "phishing"}},
+    "ips": {"198.51.100.45": {"reports": 14}}
+  },
+  "detection": {
+    "classification": "phishing",
+    "risk_score": 0.91,
+    "confidence": 0.94
+  }
+}

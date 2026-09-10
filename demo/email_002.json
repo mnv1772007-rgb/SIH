@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "analysis_id": "analysis-demo-002",
+  "email": {
+    "email_id": "email-002",
+    "message_id": "<msg-002-2026@secure-corp-auth.com>",
+    "subject": "Urgent: Action Required on Your Corporate Account",
+    "sender": "admin@secure-corp-auth.com",
+    "sender_domain": "secure-corp-auth.com",
+    "recipient": "victim2@target-org.example",
+    "recipients": ["victim2@target-org.example"],
+    "timestamp": "2026-09-10T08:32:00Z"
+  },
+  "authentication": {
+    "spf": "fail",
+    "dkim": "fail",
+    "dmarc": "fail"
+  },
+  "iocs": {
+    "domains": [
+      {"value": "secure-corp-auth.com", "source": "sender"},
+      {"value": "auth-gateway-relay.net", "source": "body"}
+    ],
+    "ips": [
+      {"value": "198.51.100.25", "source": "received_header", "asn": "64512"}
+    ],
+    "urls": [
+      {"value": "https://auth-gateway-relay.net/login/verify?session=xyz2", "domain": "auth-gateway-relay.net"}
+    ],
+    "hashes": [
+      {"value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "type": "sha256", "filename": "account_notice.pdf"}
+    ],
+    "ip_domain_mapping": {
+      "198.51.100.25": "auth-gateway-relay.net"
+    }
+  },
+  "threat_intel": {
+    "domains": {"auth-gateway-relay.net": {"malicious": true}},
+    "ips": {"198.51.100.25": {"reputation": "suspicious"}}
+  },
+  "detection": {
+    "classification": "phishing",
+    "risk_score": 0.89,
+    "confidence": 0.92
+  }
+}
