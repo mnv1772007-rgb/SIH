@@ -1,0 +1,18 @@
+From: support@example.com
+To: user@example.com
+Subject: Urgent Account Verification
+Date: Fri, 28 Aug 2026 12:00:00 +0530
+Reply-To: verify@example.net
+Return-Path: <support@example.com>
+Message-ID: <htmltest123@example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset="UTF-8"
+
+<html>
+<body>
+<p>Dear User,</p>
+<p>Your account requires immediate verification.</p>
+<a href="https://fake-bank.example/login">https://bank.example</a>
+<p>Please complete verification immediately.</p>
+</body>
+</html>

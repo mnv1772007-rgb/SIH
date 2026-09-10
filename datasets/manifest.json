@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-09-01T15:48:35.440329+00:00",
+  "scope": "Inventory of local public email corpora; no private collection or network download was performed.",
+  "deduplication": "Training additionally performs exact SHA-256 deduplication on normalized message text before splitting.",
+  "sources": [
+    {
+      "directory": "downloads/easy_ham",
+      "name": "Apache SpamAssassin Public Corpus: easy_ham",
+      "source_url": "https://spamassassin.apache.org/old/publiccorpus/",
+      "label_scheme": "benign (non-spam)",
+      "category": "email",
+      "license_or_usage": "Corpus readme states message copyright remains with original senders; use for spam-filter research/testing and do not inject samples into live mail systems.",
+      "files": 2500,
+      "bytes": 8603852,
+      "inventory_sha256": "438a0cc2c9c4ea3ef14b84d427e84ad97363d8128f29532bce777dd165fe6b77",
+      "download_date": "unknown; archive was already present locally when this manifest was generated"
+    },
+    {
+      "directory": "downloads/hard_ham",
+      "name": "Apache SpamAssassin Public Corpus: hard_ham",
+      "source_url": "https://spamassassin.apache.org/old/publiccorpus/",
+      "label_scheme": "benign (non-spam, spam-like formatting)",
+      "category": "email",
+      "license_or_usage": "Corpus readme states message copyright remains with original senders; use for spam-filter research/testing and do not inject samples into live mail systems.",
+      "files": 250,
+      "bytes": 5701188,
+      "inventory_sha256": "eba9d3b9a85b394bcb11ad705c7724c699bd919ab8678426f4b1717027b15d2f",
+      "download_date": "unknown; archive was already present locally when this manifest was generated"
+    },
+    {
+      "directory": "downloads/spam",
+      "name": "Apache SpamAssassin Public Corpus: spam",
+      "source_url": "https://spamassassin.apache.org/old/publiccorpus/",
+      "label_scheme": "spam",
+      "category": "email",
+      "license_or_usage": "Corpus readme states message copyright remains with original senders; use for spam-filter research/testing and do not inject samples into live mail systems.",
+      "files": 500,
+      "bytes": 3552203,
+      "inventory_sha256": "99231274e4bdd55145106d335252af475ddf8af8e77b342f8716b18c9d29217e",
+      "download_date": "unknown; archive was already present locally when this manifest was generated"
+    },
+    {
+      "directory": "downloads/spam_2",
+      "name": "Apache SpamAssassin Public Corpus: spam_2",
+      "source_url": "https://spamassassin.apache.org/old/publiccorpus/",
+      "label_scheme": "spam",
+      "category": "email",
+      "license_or_usage": "Corpus readme states message copyright remains with original senders; use for spam-filter research/testing and do not inject samples into live mail systems.",
+      "files": 1396,
+      "bytes": 8827777,
+      "inventory_sha256": "292aa7f20234a2999523cb054abb3b8ec390ca2e7340f64b4e607de808b41235",
+      "download_date": "unknown; archive was already present locally when this manifest was generated"
+    },
+    {
+      "directory": "downloads/maildir",
+      "name": "CMU CALO Enron Email Dataset subset",
+      "source_url": "https://www.cs.cmu.edu/~enron/",
+      "label_scheme": "unlabelled reference corpus; excluded from supervised spam baseline",
+      "category": "email",
+      "license_or_usage": "Research-use corpus; source cautions users to be sensitive to privacy and notes redactions/integrity limitations.",
+      "files": 7351,
+      "bytes": 20349246,
+      "inventory_sha256": "3fada003225086687fffd86d7ebefd1a22889a3d226ed3fbc257a46c032b7882",
+      "download_date": "unknown; archive was already present locally when this manifest was generated"
+    }
+  ],
+  "total_files": 11997,
+  "total_bytes": 47034266,
+  "url_data": "No labelled URL corpus is currently staged. URL reference directories are deliberately empty rather than populated with assumed-safe domains."
+}

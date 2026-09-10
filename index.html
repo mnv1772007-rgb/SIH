@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Threat Forensics - Analyst Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    
+    <div class="app">
+        <header class="header" role="banner">
+            <div class="header-left">
+                <div class="logo" aria-label="Email Threat Forensics Home">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                            <path d="M12 12l-4-4 4-4"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">Email Threat Forensics</span>
+                </div>
+                <nav class="nav-tabs" role="tablist" aria-label="Main navigation">
+                    <button class="nav-tab active" data-tab="dashboard" role="tab" aria-selected="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-tab" data-tab="analyze" role="tab" aria-selected="false">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        <span>Analyze</span>
+                    </button>
+                    <button class="nav-tab" data-tab="cases" role="tab" aria-selected="false">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span>Cases</span>
+                    </button>
+                    <button class="nav-tab" data-tab="settings" role="tab" aria-selected="false">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+                <div class="header-search" id="globalSearch">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="search" placeholder="Search analyses, cases, indicators..." aria-label="Global search">
+                    <kbd class="search-shortcut">⌘K</kbd>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button class="btn-icon btn-ghost" aria-label="Notifications" id="notificationsBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-icon btn-ghost" aria-label="Command palette" id="commandPaletteBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <path d="M8 21h8"/>
+                            <path d="M12 17v4"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">Security Analyst</span>
+                        <span class="user-role">Tier 2 SOC</span>
+                    </div>
+                    <div class="user-avatar" aria-label="User menu">
+                        <span>SA</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content" role="main">
+            <section id="page-dashboard" class="page active" aria-labelledby="dashboard-title">
+                <div class="section-header">
+                    <div>
+                        <h1 id="dashboard-title">Dashboard</h1>
+                        <p>Real-time email threat intelligence and forensic analysis</p>
+                    </div>
+                    <button class="btn btn-primary" id="newAnalysisBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Analysis
+                    </button>
+                </div>
+
+                <div class="dashboard-hero">
+                    <div class="hero-content">
+                        <div class="hero-text">
+                            <h1>Email Threat <span class="gradient-text">Intelligence</span></h1>
+                            <p>Upload suspicious emails for deep forensic analysis. Our AI-powered engine dissects headers, traces infrastructure, and correlates threat intelligence to reveal the true origin of attacks.</p>
+                            <div class="hero-stats">
+                                <div class="hero-stat">
+                                    <span class="hero-stat-value" id="statAnalyses">1,247</span>
+                                    <span class="hero-stat-label">Total Analyses</span>
+                                </div>
+                                <div class="hero-stat">
+                                    <span class="hero-stat-value" id="statThreats">892</span>
+                                    <span class="hero-stat-label">Threats Detected</span>
+                                </div>
+                                <div class="hero-stat">
+                                    <span class="hero-stat-value" id="statCases">156</span>
+                                    <span class="hero-stat-label">Active Cases</span>
+                                </div>
+                                <div class="hero-stat">
+                                    <span class="hero-stat-value" id="statAccuracy">94.2%</span>
+                                    <span class="hero-stat-label">Detection Rate</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hero-visual" aria-hidden="true">
+                            <div class="hero-visual-container">
+                                <div class="hero-ring"></div>
+                                <div class="hero-ring"></div>
+                                <div class="hero-ring"></div>
+                                <div class="hero-ring"></div>
+                                <div class="hero-particles"></div>
+                                <div class="hero-core">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <aside class="upload-panel reveal stagger-1" id="uploadPanel" aria-label="File upload" style="opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                        <upload-component></upload-component>
+                    </aside>
+                    
+                    <section class="results-panel reveal stagger-2" id="resultsPanel" aria-label="Analysis results" style="display: none; opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                        <div class="results-header">
+                            <h2>Analysis Results</h2>
+                            <div class="results-meta">
+                                <span class="badge badge-info" id="analysisTimestamp">Just now</span>
+                                <span class="badge badge-info" id="analysisId">ANL-2024-001</span>
+                            </div>
+                        </div>
+
+                        <risk-summary-component></risk-summary-component>
+
+                        <div class="analysis-tabs" role="tablist" aria-label="Analysis views">
+                            <button class="analysis-tab active" data-analysis="forensics" role="tab" aria-selected="true">Email Forensics</button>
+                            <button class="analysis-tab" data-analysis="threat-intel" role="tab" aria-selected="false">Threat Intelligence</button>
+                            <button class="analysis-tab" data-analysis="graph" role="tab" aria-selected="false">Graph Correlation</button>
+                        </div>
+
+                        <div class="analysis-content">
+                            <div id="panel-forensics" class="analysis-panel active" role="tabpanel">
+                                <email-forensics-component></email-forensics-component>
+                            </div>
+                            <div id="panel-threat-intel" class="analysis-panel" role="tabpanel">
+                                <threat-intel-component></threat-intel-component>
+                            </div>
+                            <div id="panel-graph" class="analysis-panel" role="tabpanel">
+                                <graph-correlation-component></graph-correlation-component>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section id="page-analyze" class="page" aria-labelledby="analyze-title">
+                <div class="section-header reveal">
+                    <div>
+                        <h1 id="analyze-title">Analyze Email</h1>
+                        <p>Upload an .eml or .msg file for comprehensive forensic analysis</p>
+                    </div>
+                </div>
+                <div class="reveal stagger-1" style="max-width: 720px; margin: 0 auto; opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <upload-component></upload-component>
+                </div>
+            </section>
+
+            <section id="page-cases" class="page" aria-labelledby="cases-title">
+                <div class="section-header reveal">
+                    <div>
+                        <h1 id="cases-title">Case Management</h1>
+                        <p>Track and manage investigation cases across your organization</p>
+                    </div>
+                    <button class="btn btn-primary" id="createCaseBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Case
+                    </button>
+                </div>
+                <div class="reveal stagger-1" style="opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <case-management-component></case-management-component>
+                </div>
+            </section>
+
+            <section id="page-settings" class="page" aria-labelledby="settings-title">
+                <div class="section-header reveal">
+                    <div>
+                        <h1 id="settings-title">Settings</h1>
+                        <p>Configure backend connections, preferences, and integrations</p>
+                    </div>
+                </div>
+                <div class="reveal stagger-1" style="opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <settings-component></settings-component>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <span>Email Threat Forensics Platform v1.0</span>
+                <span class="footer-divider" aria-hidden="true">•</span>
+                <span>SIH 26106</span>
+                <span class="footer-divider" aria-hidden="true">•</span>
+                <span>Contract-First Architecture</span>
+            </div>
+        </footer>
+    </div>
+
+    <div id="modalContainer" aria-live="polite"></div>
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="command-palette" id="commandPalette" role="dialog" aria-modal="true" aria-label="Command palette">
+        <input type="text" class="command-palette-input" placeholder="Type a command or search..." aria-label="Command input">
+        <div class="command-palette-results" id="commandResults"></div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

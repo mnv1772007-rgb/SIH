@@ -1,0 +1,100 @@
+# Secrets and local environment overrides
+.env
+.env.*
+!.env.example
+
+# Python/runtime caches
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.sqlite3
+
+# Generated analyses and graphs
+forensic_result*.json
+Graph/graph_data.json
+Graph/reports/
+graph_store/
+geolocation_cache.json
+openphish_cache.json
+ HEAD
+
+# LOGS & TEMPORARY
+
+*.log
+*.log.*
+logs/
+tmp/
+temp/
+.env
+data/emails/
+data/
+
+# Local corpora (keep only inventory tooling and source metadata)
+datasets/*
+!datasets/build_manifest.py
+!datasets/manifest.json
+!datasets/email/
+!datasets/email/.gitkeep
+!datasets/urls/
+!datasets/urls/README.md
+!datasets/trusted_urls/
+!datasets/trusted_urls/README.md
+AI_model/models/*.joblib
+AI_model/models/*.metrics.json
+AI_model/models/evaluation/
+desktop.ini
+origin/main
+
+# Virtual environments (never commit these)
+venv/
+.venv/
+env/
+ENV/
+
+# Temp repo clones
+temp_repo/
+
+# Node
+node_modules/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Large local datasets - keep raw data out of Git
+datasets/*
+
+# Keep required dataset metadata/documentation
+!datasets/build_manifest.py
+!datasets/manifest.json
+
+!datasets/email/
+!datasets/email/.gitkeep
+
+!datasets/trusted_urls/
+!datasets/trusted_urls/README.md
+
+!datasets/urls/
+!datasets/urls/README.md
+
+# Ignore all actual files inside dataset folders
+datasets/email/*
+!datasets/email/.gitkeep
+
+datasets/trusted_urls/*
+!datasets/trusted_urls/README.md
+
+datasets/urls/*
+!datasets/urls/README.md

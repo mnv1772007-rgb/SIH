@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-cyber-bg text-slate-200 font-sans antialiased overflow-x-hidden;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 211, 238, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(168, 85, 247, 0.06), transparent);
+}
+
+/* ---- glass panel utility ---- */
+.glass {
+  @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ---- faint technical grid ---- */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ---- thin scrollbars ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+}
+
+/* ---- pulsing warning dot ---- */
+@keyframes warningPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 0 6px rgba(244, 63, 94, 0);
+  }
+}
+.pulse-warning {
+  animation: warningPulse 1.6s ease-in-out infinite;
+}
