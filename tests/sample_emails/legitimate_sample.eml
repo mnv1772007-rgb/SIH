@@ -1,0 +1,50 @@
+Return-Path: <newsletter@google.com>
+Received: from mail-wm1-f73.google.com (mail-wm1-f73.google.com [209.85.128.73])
+        by mx.example.com with ESMTPS id legit001.123
+        for <user@example.com>; Wed, 03 Jan 2024 12:00:00 +0000 (UTC)
+Received: by mail-wm1-f73.google.com with SMTP id legit-smtp-001
+        for <user@example.com>; Wed, 03 Jan 2024 12:00:00 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601;
+        h=from:to:subject:date:message-id:mime-version;
+        bh=legitimatebodyhash=;
+        b=legitimatesignature==
+Authentication-Results: mx.example.com;
+        spf=pass (mx.example.com: domain of newsletter@google.com designates 209.85.128.73 as permitted sender) smtp.mailfrom=newsletter@google.com;
+        dkim=pass header.i=@google.com header.s=20230601 header.b=legit;
+        dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=google.com
+ARC-Seal: i=1; a=rsa-sha256; t=1704283200; cv=none;
+        d=google.com; s=arc-20160816;
+        b=arcsealvalue==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=arc-20160816;
+        h=from:to:subject:date;
+        bh=legitimatebodyhash=;
+        b=arcmsigvalue==
+ARC-Authentication-Results: i=1; mx.google.com;
+        spf=pass smtp.mailfrom=newsletter@google.com;
+        dkim=pass header.i=@google.com
+From: Google <newsletter@google.com>
+To: user@example.com
+Subject: Your Google Account activity summary - January 2024
+Date: Wed, 03 Jan 2024 12:00:00 +0000
+Message-ID: <legit20240103120000@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+X-Mailer: Google Mail
+
+Hi,
+
+Here is your Google Account activity summary for January 2024.
+
+Account: user@example.com
+Last sign-in: January 3, 2024 at 11:45 AM UTC
+Location: Mountain View, CA, USA
+Device: Chrome on Windows
+
+Your account is secure. No suspicious activity was detected.
+
+Visit https://myaccount.google.com to manage your account.
+
+Thanks,
+The Google Team

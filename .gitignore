@@ -1,0 +1,61 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# === Virtual Environments ===
+venv/
+.venv/
+env/
+ENV/
+
+# === Environment Variables — NEVER commit these ===
+.env
+.env.*
+!.env.example
+
+# === Generated Reports (contain sensitive email data) ===
+*_report.json
+*_enriched_report.json
+phishing_report.json
+bec_report.json
+legit_report.json
+phishing_enriched_report.json
+
+# === Test Artifacts ===
+test_gemini.py
+
+# === IDE / OS ===
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Logs ===
+*.log
+logs/
+
+# === pytest ===
+.pytest_cache/
+.coverage
+htmlcov/
+
+# === mypy ===
+.mypy_cache/

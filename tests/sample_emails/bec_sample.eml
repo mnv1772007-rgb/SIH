@@ -1,0 +1,40 @@
+Return-Path: <cfo-noreply@legitcorp-finance.com>
+Received: from smtp.legitcorp-finance.com ([198.51.100.50])
+        by mx.targetcorp.com with ESMTPS id bec001.007
+        for <accounts@targetcorp.com>; Tue, 02 Jan 2024 09:15:00 +0000 (UTC)
+Received: from webmail.legitcorp-finance.com (webmail [10.0.0.5])
+        by smtp.legitcorp-finance.com with ESMTP id bec001
+        for <accounts@targetcorp.com>; Tue, 02 Jan 2024 09:14:55 +0000
+Authentication-Results: mx.targetcorp.com;
+        spf=pass (mx.targetcorp.com: domain of cfo-noreply@legitcorp-finance.com designates 198.51.100.50 as permitted sender) smtp.mailfrom=cfo-noreply@legitcorp-finance.com;
+        dkim=none;
+        dmarc=none
+From: "Robert Chen, CFO" <robert.chen@legitcorp-fianance.com>
+To: accounts@targetcorp.com
+Reply-To: robert.chen.cfo.urgent@gmail.com
+Subject: URGENT: Wire Transfer Required - Confidential
+Date: Tue, 02 Jan 2024 09:15:00 +0000
+Message-ID: <BEC20240102091500@legitcorp-finance.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+X-Mailer: Microsoft Outlook 16.0
+
+Hi,
+
+I need you to process an urgent wire transfer today. This is time-sensitive and must be kept confidential per our legal team's advice.
+
+Please transfer $87,500 USD to the following account:
+
+  Bank: First International Bank
+  Account Name: Global Trade Solutions LLC
+  Account Number: 4829103847
+  Routing Number: 021000021
+  SWIFT: BOFAUS3N
+
+This is for a confidential acquisition deal. Do NOT discuss with anyone else in the office. I will explain everything when I return from my meeting.
+
+Process this immediately and confirm via email.
+
+Robert Chen
+Chief Financial Officer
+LegitCorp International

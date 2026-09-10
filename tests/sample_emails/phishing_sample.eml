@@ -1,0 +1,43 @@
+Return-Path: <phish-bounce@evil-login-verify.tk>
+Received: from mail.evil-login-verify.tk ([45.142.212.100])
+        by mx.gmail.com with ESMTP id abc123.456
+        for <victim@gmail.com>; Mon, 01 Jan 2024 10:00:00 +0000 (UTC)
+Received: from localhost (localhost [127.0.0.1])
+        by mail.evil-login-verify.tk with ESMTP id xyz789
+        for <victim@gmail.com>; Mon, 01 Jan 2024 09:59:45 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=evil-login-verify.tk; s=default;
+        h=from:to:subject:date:message-id;
+        bh=abc123fakedkhash=;
+        b=INVALIDSIGNATURE==
+Authentication-Results: mx.gmail.com;
+        spf=fail (google.com: domain of phish-bounce@evil-login-verify.tk does not designate 45.142.212.100 as permitted sender) smtp.mailfrom=phish-bounce@evil-login-verify.tk;
+        dkim=fail header.i=@evil-login-verify.tk header.s=default header.b=INVALID;
+        dmarc=fail (p=NONE sp=NONE dis=NONE) header.from=evil-login-verify.tk
+From: "PayPal Security" <security@paypa1.com>
+To: victim@gmail.com
+Reply-To: collect-data@evil-login-verify.tk
+Subject: =?UTF-8?B?W0FDVElPTiBSRVFVSVJFRF0gWW91ciBQYXlQYWwgYWNjb3VudCBoYXMgYmVlbiBsaW1pdGVkIQ==?=
+Date: Mon, 01 Jan 2024 10:00:00 +0000
+Message-ID: <phish001@evil-login-verify.tk>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+X-Mailer: PhishKit v3.0
+X-Originating-IP: 45.142.212.100
+
+<!DOCTYPE html>
+<html>
+<body>
+<p>Dear Customer,</p>
+<p>Your <b>PayPal</b> account has been <span style="color:red">LIMITED</span>.</p>
+<p>Please verify your identity immediately to restore access:</p>
+<a href="http://evil-login-verify.tk/paypal/verify?token=abc123&user=victim@gmail.com">
+    Click here to verify your account
+</a>
+<p>If you do not verify within 24 hours, your account will be permanently suspended.</p>
+<p>
+    Also check: http://45.142.212.100/malware/stage2.php
+</p>
+<p>PayPal Customer Service</p>
+</body>
+</html>
