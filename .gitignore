@@ -28,13 +28,8 @@ ENV/
 .env.*
 !.env.example
 
-# === Generated Reports (contain sensitive email data) ===
-*_report.json
-*_enriched_report.json
-phishing_report.json
-bec_report.json
-legit_report.json
-phishing_enriched_report.json
+# === Generated Reports / Test Output ===
+*report*.json
 
 # === Test Artifacts ===
 test_gemini.py
