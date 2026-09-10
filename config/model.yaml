@@ -1,0 +1,33 @@
+baseline:
+  tfidf_max_features: 10000
+  tfidf_ngram_range: [1, 2]
+  xgb_n_estimators: 300
+  xgb_max_depth: 6
+  xgb_learning_rate: 0.1
+  xgb_subsample: 0.8
+  xgb_colsample_bytree: 0.8
+  random_state: 42
+
+bec:
+  transformer_model: "microsoft/deberta-v3-small"
+  max_length: 256
+  hidden_dropout: 0.3
+  classifier_dropout: 0.2
+  num_classes: 3
+  learning_rate: 2e-5
+  batch_size: 16
+  epochs: 3
+
+fusion:
+  weights:
+    rule_tally: 0.30
+    ml_phishing: 0.25
+    ml_spam: 0.10
+    ml_bec: 0.20
+    ml_impersonation: 0.15
+  risk_thresholds:
+    minimal: 0
+    low: 20
+    medium: 40
+    high: 65
+    critical: 85
