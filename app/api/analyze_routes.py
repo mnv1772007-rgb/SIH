@@ -1,8 +1,13 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
+import hashlib
 import json
+import uuid
+from datetime import datetime, timezone
 
 from role1_email_forensics.main import analyze_eml_bytes
+from role1_email_forensics.risk.explainable_scorer import compute_explainable_score
+from role1_email_forensics.timeline.timeline_builder import build_timeline
 
 router = APIRouter()
 
@@ -388,29 +393,74 @@ async def analyze_email_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e}")
 
-    # Prepare response for the frontend (adapter expects flat or nested structures)
-    
-    # 1. Map forensics
+    # ── Forensic Evidence Integrity ──────────────────────────────────────────
+    email_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+    case_id = f"CASE-{report.report_id[:8].upper()}"
+
+    # ── 1. Explainable Risk Scoring ──────────────────────────────────────────
+    scored = compute_explainable_score(report)
+    risk_score    = scored["risk_score"]
+    risk_level    = scored["risk_level"]
+    confidence    = scored["confidence"]
+    verdict       = scored["verdict"]
+    risk_factors  = scored["risk_factors"]
+    risk_breakdown = scored["risk_breakdown"]
+    primary_evidence = scored["primary_evidence"]
+    recommended_actions = scored["recommended_actions"]
+    limitations   = scored["limitations"]
+
+    # ── 2. Forensic Timeline ────────────────────────────────────────────────
+    timeline = build_timeline(report)
+
+    # ── 3. Forensics data ───────────────────────────────────────────────────
     forensics_data = {
         "message_id": report.headers.message_id or f"<{report.report_id}@sentinel.internal>",
-        "sender_domain": report.headers.from_address.split('@')[-1] if report.headers.from_address and '@' in report.headers.from_address else "unknown",
-        "origin_ip": report.origin.probable_sending_ip or "127.0.0.1",
-        "spf_status": report.auth.spf.result.value if hasattr(report.auth.spf.result, "value") else str(report.auth.spf.result),
-        "dkim_status": report.auth.dkim.result.value if hasattr(report.auth.dkim.result, "value") else str(report.auth.dkim.result),
-        "dmarc_status": report.auth.dmarc.result.value if hasattr(report.auth.dmarc.result, "value") else str(report.auth.dmarc.result),
-        "extracted_urls": [url.url for url in report.iocs.urls],
-        "email_body_text": "Email parsed successfully. Check forensics.",
+        "sender_domain": (
+            report.headers.from_address.split('@')[-1]
+            if report.headers.from_address and '@' in report.headers.from_address
+            else "unknown"
+        ),
+        "origin_ip": report.origin.probable_sending_ip or "unknown",
+        "spf_status": (
+            report.auth.spf.result.value if hasattr(report.auth.spf.result, "value")
+            else str(report.auth.spf.result)
+        ),
+        "dkim_status": (
+            report.auth.dkim.result.value if hasattr(report.auth.dkim.result, "value")
+            else str(report.auth.dkim.result)
+        ),
+        "dmarc_status": (
+            report.auth.dmarc.result.value if hasattr(report.auth.dmarc.result, "value")
+            else str(report.auth.dmarc.result)
+        ),
+        "extracted_urls": [u.url for u in report.iocs.urls],
+        "attachments": [
+            {
+                "filename": att.filename,
+                "content_type": att.content_type,
+                "size_bytes": att.size_bytes,
+                "sha256": att.sha256,
+                "md5": att.md5,
+                "is_executable": att.is_executable,
+            }
+            for att in report.iocs.attachments
+        ],
+        "smtp_hops": len(report.smtp_path),
+        "headers_anomalies": {
+            "reply_to_mismatch": report.headers.from_reply_to_mismatch,
+            "return_path_mismatch": report.headers.from_return_path_mismatch,
+            "display_name_spoofing": report.headers.display_name_spoofing_suspected,
+        },
     }
 
-    # 2. Map Threat Intel & Geo
+    # ── 4. Threat Intel & Geo ────────────────────────────────────────────────
     country = report.origin.country_name or report.origin.country_code or "Unknown"
-    asn = report.origin.asn or report.origin.isp or "Unknown ASN"
-    lat = report.origin.latitude or 55.0084
-    lng = report.origin.longitude or 82.9357
-    
+    asn     = report.origin.asn or report.origin.isp or "Unknown ASN"
+    lat     = report.origin.latitude or 0.0
+    lng     = report.origin.longitude or 0.0
+
+    # Real signals only — no hardcoded fallback text
     threat_intel_flags = [sig.description for sig in report.risk_signals]
-    if not threat_intel_flags:
-         threat_intel_flags = ["Suspicious origin detected", "Authentication mechanisms failed"]
 
     threat_intel_data = {
         "ip_geolocation": {
@@ -419,25 +469,48 @@ async def analyze_email_file(
             "lat": lat,
             "lng": lng,
             "city": report.origin.city,
-            "region": report.origin.region
+            "region": report.origin.region,
         },
-        "domain_age_days": 15,
         "threat_intel_flags": threat_intel_flags,
-        "ai_nlp_intent": report.ai_assessment.get("classification", "Phishing / Social Engineering Attempt"),
-        "ai_confidence": report.ai_assessment.get("confidence", 95.0),
-        "ai_risk_score": report.ai_assessment.get("risk_score", report.origin.abuse_score or 85.0),
+        "ai_nlp_intent": report.ai_assessment.get("classification"),
+        "ai_confidence": report.ai_assessment.get("confidence"),
+        "ai_risk_score": report.ai_assessment.get("risk_score"),
+        "ai_executive_summary": report.ai_assessment.get("executive_summary"),
+        "ai_attack_hypothesis": report.ai_assessment.get("attack_hypothesis"),
+        "ai_status": report.ai_assessment.get("status"),
+        "abuseipdb": (report.threat_intelligence or {}).get("abuseipdb"),
+        "virustotal": (report.threat_intelligence or {}).get("virustotal"),
+        "urlscan": (report.threat_intelligence or {}).get("urlscan"),
     }
 
-    # 3. Construct Complete Multi-Hop Graph Data
+    # ── 5. Graph Data ────────────────────────────────────────────────────────
     graph_data = build_comprehensive_forensics_graph(report, actual_filename)
 
+    # ── 6. Final Response ────────────────────────────────────────────────────
     response_data = {
         "scan_id": f"SHIELD-{report.report_id[:8].upper()}",
+        "case_id": case_id,
         "timestamp": report.analyzed_at,
         "filename": actual_filename,
+        # Evidence integrity
+        "email_sha256": email_sha256,
+        # Explainable scoring
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "confidence": confidence,
+        "verdict": verdict,
+        "risk_factors": risk_factors,
+        "risk_breakdown": risk_breakdown,
+        "primary_evidence": primary_evidence,
+        "recommended_actions": recommended_actions,
+        "limitations": limitations,
+        # Structured forensics
         "forensics": forensics_data,
         "threat_intel": threat_intel_data,
-        "graph_data": graph_data
+        # Timeline
+        "timeline": timeline,
+        # Graph
+        "graph_data": graph_data,
     }
 
     return response_data

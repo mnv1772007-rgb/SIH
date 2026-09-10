@@ -1,0 +1,294 @@
+{
+  "report_id": "5dfebbf2-5dc2-4f40-9484-9596d67035ea",
+  "analyzed_at": "2026-09-10T12:25:08Z",
+  "source_file": "bec_sample.eml",
+  "raw_email_sha256": "aeb456998865aee5f02494bf1cd5ac9d09d0c9da1c961b6e02b86e2b7b7746da",
+  "raw_email_size_bytes": 1673,
+  "headers": {
+    "from_address": "robert.chen@legitcorp-fianance.com",
+    "from_display_name": "Robert Chen, CFO",
+    "to": [
+      "accounts@targetcorp.com"
+    ],
+    "cc": [],
+    "bcc": [],
+    "reply_to": "robert.chen.cfo.urgent@gmail.com",
+    "return_path": "cfo-noreply@legitcorp-finance.com",
+    "subject": "URGENT: Wire Transfer Required - Confidential",
+    "date": "2024-01-02T09:15:00Z",
+    "message_id": "BEC20240102091500@legitcorp-finance.com",
+    "in_reply_to": null,
+    "references": [],
+    "x_originating_ip": null,
+    "x_mailer": "Microsoft Outlook 16.0",
+    "x_spam_status": null,
+    "x_spam_score": null,
+    "mime_version": "1.0",
+    "content_type": "text/plain; charset=UTF-8",
+    "custom_headers": {},
+    "from_reply_to_mismatch": true,
+    "from_return_path_mismatch": true,
+    "display_name_spoofing_suspected": false
+  },
+  "auth": {
+    "spf": {
+      "result": "none",
+      "domain": "legitcorp-fianance.com",
+      "ip_checked": "10.0.0.5",
+      "record": null,
+      "explanation": "NXDOMAIN for legitcorp-fianance.com"
+    },
+    "dkim": {
+      "result": "none",
+      "domain": null,
+      "selector": null,
+      "algorithm": null,
+      "key_bits": null,
+      "header_hash": null,
+      "body_hash": null,
+      "error": "No DKIM-Signature header found"
+    },
+    "dmarc": {
+      "result": "none",
+      "domain": "legitcorp-fianance.com",
+      "policy": null,
+      "subdomain_policy": null,
+      "pct": null,
+      "rua": [],
+      "ruf": [],
+      "spf_alignment": null,
+      "dkim_alignment": null,
+      "record": null,
+      "error": "No DMARC record at _dmarc.legitcorp-fianance.com"
+    },
+    "arc": {
+      "result": "none",
+      "chain_length": 0,
+      "chain_valid": false,
+      "cv_field": null,
+      "error": "No ARC headers found"
+    }
+  },
+  "smtp_path": [
+    {
+      "hop": 1,
+      "from_host": "webmail.legitcorp-finance.com",
+      "from_ip": "10.0.0.5",
+      "by_host": "smtp.legitcorp-finance.com",
+      "with_protocol": "ESMTP",
+      "id": "bec001",
+      "for_address": "accounts@targetcorp.com",
+      "timestamp": "2024-01-02T09:14:55Z",
+      "delay_seconds": null,
+      "raw_header": "from webmail.legitcorp-finance.com (webmail [10.0.0.5]) by smtp.legitcorp-finance.com with ESMTP id bec001 for <accounts@targetcorp.com>; Tue, 02 Jan 2024 09:14:55 +0000",
+      "flags": [
+        "private_ip"
+      ]
+    },
+    {
+      "hop": 2,
+      "from_host": "smtp.legitcorp-finance.com",
+      "from_ip": "198.51.100.50",
+      "by_host": "mx.targetcorp.com",
+      "with_protocol": "ESMTPS",
+      "id": "bec001.007",
+      "for_address": "accounts@targetcorp.com",
+      "timestamp": "2024-01-02T09:15:00Z",
+      "delay_seconds": 5.0,
+      "raw_header": "from smtp.legitcorp-finance.com ([198.51.100.50]) by mx.targetcorp.com with ESMTPS id bec001.007 for <accounts@targetcorp.com>; Tue, 02 Jan 2024 09:15:00 +0000 (UTC)",
+      "flags": [
+        "private_ip"
+      ]
+    }
+  ],
+  "iocs": {
+    "urls": [],
+    "ips": [
+      {
+        "ip": "10.0.0.5",
+        "ip_type": "private",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      },
+      {
+        "ip": "198.51.100.50",
+        "ip_type": "private",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      }
+    ],
+    "domains": [
+      {
+        "domain": "legitcorp-fianance.com",
+        "registered_domain": "legitcorp-fianance.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "gmail.com",
+        "registered_domain": "gmail.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "legitcorp-finance.com",
+        "registered_domain": "legitcorp-finance.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "targetcorp.com",
+        "registered_domain": "targetcorp.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      }
+    ],
+    "attachments": [],
+    "body_text_sha256": "f64fa979e1d9ee8141d9c91793ca048c12dab111a48f754b4c11e40d07597924",
+    "body_html_sha256": null
+  },
+  "origin": {
+    "probable_sending_ip": null,
+    "probable_sending_host": "webmail.legitcorp-finance.com",
+    "rdns": null,
+    "asn": null,
+    "asn_org": null,
+    "country_code": null,
+    "country_name": null,
+    "isp": null,
+    "city": null,
+    "region": null,
+    "latitude": null,
+    "longitude": null,
+    "abuse_score": null,
+    "threat_intel": {},
+    "is_cloud_provider": false,
+    "is_vpn_suspected": false,
+    "is_tor": false,
+    "confidence": "low",
+    "method": "first_external_smtp_hop",
+    "note": "Probable sending MTA infrastructure — NOT the attacker's physical identity. IP geolocation is probabilistic."
+  },
+  "risk_signals": [
+    {
+      "signal_id": "AUTH-001",
+      "level": "low",
+      "category": "auth",
+      "description": "No SPF record published — cannot validate sender",
+      "evidence": {
+        "domain": "legitcorp-fianance.com"
+      }
+    },
+    {
+      "signal_id": "AUTH-002",
+      "level": "low",
+      "category": "auth",
+      "description": "No DKIM signature found",
+      "evidence": {
+        "domain": "robert.chen@legitcorp-fianance.com"
+      }
+    },
+    {
+      "signal_id": "AUTH-003",
+      "level": "low",
+      "category": "auth",
+      "description": "No DMARC record — domain has no email policy enforcement",
+      "evidence": {
+        "domain": "legitcorp-fianance.com"
+      }
+    },
+    {
+      "signal_id": "HEADER-001",
+      "level": "medium",
+      "category": "header",
+      "description": "From domain ≠ Reply-To domain — potential reply hijacking",
+      "evidence": {
+        "from": "robert.chen@legitcorp-fianance.com",
+        "reply_to": "robert.chen.cfo.urgent@gmail.com"
+      }
+    },
+    {
+      "signal_id": "HEADER-002",
+      "level": "medium",
+      "category": "header",
+      "description": "From domain ≠ Return-Path domain — potential spoofing",
+      "evidence": {
+        "from": "robert.chen@legitcorp-fianance.com",
+        "return_path": "cfo-noreply@legitcorp-finance.com"
+      }
+    },
+    {
+      "signal_id": "SMTP-001",
+      "level": "low",
+      "category": "smtp",
+      "description": "Private IP found in public SMTP relay chain at hop 1",
+      "evidence": {
+        "hop": 1,
+        "ip": "10.0.0.5"
+      }
+    },
+    {
+      "signal_id": "SMTP-002",
+      "level": "low",
+      "category": "smtp",
+      "description": "Private IP found in public SMTP relay chain at hop 2",
+      "evidence": {
+        "hop": 2,
+        "ip": "198.51.100.50"
+      }
+    }
+  ],
+  "threat_intelligence": {
+    "geolocation": null,
+    "abuseipdb": null,
+    "virustotal": {
+      "hashes": [],
+      "urls": [],
+      "sending_ip": null
+    },
+    "urlscan": []
+  },
+  "ai_assessment": {
+    "classification": "bec",
+    "risk_score": 95,
+    "confidence": 0.95,
+    "executive_summary": "This email exhibits classic hallmarks of a Business Email Compromise (BEC) attack using typosquatting and domain spoofing. The sender domain ('legitcorp-fianance.com') contains a deliberate misspelling ('fianance') to mimic a legitimate entity. Combined with missing email authentication standards (SPF, DKIM, DMARC) and mismatching Reply-To/Return-Path headers, the attacker is attempting to fraudulently request an urgent wire transfer.",
+    "attack_hypothesis": "An attacker registered a lookalike domain ('legitcorp-fianance.com') to impersonate an executive or financial officer (Robert Chen). The adversary intends to leverage high urgency and social engineering to trick the victim into initiating an unauthorized wire transfer, routing replies to an attacker-controlled inbox via mismatched Reply-To headers.",
+    "phishing_tactics": [
+      "Domain Typosquatting",
+      "Display Name Spoofing",
+      "Social Engineering / Urgency",
+      "Reply Path Hijacking",
+      "Financial Fraud / BEC"
+    ],
+    "recommended_actions": [
+      "Block the domain 'legitcorp-fianance.com' across email gateways and security controls.",
+      "Alert the targeted recipient not to reply or initiate any wire transfers based on this request.",
+      "Verify wire transfer requests via out-of-band communication (e.g., calling the sender on a known trusted phone number).",
+      "Check mail server logs for other incoming messages originating from 'legitcorp-fianance.com' or associated IP addresses."
+    ],
+    "status": "available",
+    "provider": "Google Gemini",
+    "model": "gemini-3.6-flash"
+  },
+  "pipeline_version": "1.0.0",
+  "processing_errors": []
+}

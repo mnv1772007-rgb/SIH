@@ -1,4 +1,4 @@
-import { AnalysisResponse, AuthStatus, ForensicsData, GraphData, GraphNode, ThreatIntelData } from "@/types/threat-intel";
+import { AnalysisResponse, AuthStatus, ForensicsData, GraphData, GraphNode, ThreatIntelData, RiskBreakdownItem, TimelineEvent } from "@/types/threat-intel";
 import { defaultMockThreatResponse } from "@/data/mockThreatData";
 
 function normalizeAuthStatus(value: unknown): AuthStatus {
@@ -12,8 +12,10 @@ function normalizeAuthStatus(value: unknown): AuthStatus {
     if (v.includes("softfail")) return "softfail";
     if (v.includes("neutral")) return "neutral";
     if (v.includes("none")) return "none";
+    // Return none (not fail) for any unknown/missing value — missing record != malicious
+    return "none";
   }
-  return "fail";
+  return "none";
 }
 
 function normalizeNumber(value: unknown, fallback: number): number {
@@ -117,7 +119,8 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
   );
 
   const rawFlags = rawThreat.threat_intel_flags || rawThreat.flags || rawThreat.iocs || rawThreat.threat_flags || raw.threat_intel_flags;
-  const threatFlags = normalizeStringArray(rawFlags, ["Threat Signature Detected"]);
+  // No hardcoded fallback — empty array when no real threat signals exist
+  const threatFlags = normalizeStringArray(rawFlags, []);
 
   const aiNlpIntent = normalizeString(
     rawThreat.ai_nlp_intent || rawThreat.nlp_intent || rawThreat.intent || rawThreat.predicted_intent || raw.ai_nlp_intent,
@@ -141,6 +144,12 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     ai_nlp_intent: aiNlpIntent,
     ai_confidence: aiConfidence,
     ai_risk_score: Math.min(100, Math.max(0, aiRiskScore)),
+    ai_executive_summary: typeof rawThreat.ai_executive_summary === "string" ? rawThreat.ai_executive_summary : undefined,
+    ai_attack_hypothesis: typeof rawThreat.ai_attack_hypothesis === "string" ? rawThreat.ai_attack_hypothesis : undefined,
+    ai_status: typeof rawThreat.ai_status === "string" ? rawThreat.ai_status : undefined,
+    abuseipdb: rawThreat.abuseipdb || null,
+    virustotal: rawThreat.virustotal || null,
+    urlscan: Array.isArray(rawThreat.urlscan) ? rawThreat.urlscan : null,
   };
 
   // Extract or synthesize Graph Data
@@ -189,12 +198,32 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     graphData = { nodes, links };
   }
 
+  // ── Timeline ────────────────────────────────────────────────────────────
+  const timeline: TimelineEvent[] | undefined = Array.isArray(raw.timeline) ? raw.timeline : undefined;
+
+  // ── Risk Breakdown ──────────────────────────────────────────────────────
+  const riskBreakdown: RiskBreakdownItem[] | undefined = Array.isArray(raw.risk_breakdown) ? raw.risk_breakdown : undefined;
+
   return {
     scan_id: normalizeString(raw.scan_id || raw.id, `SHIELD-${Date.now().toString(36).toUpperCase()}`),
+    case_id: typeof raw.case_id === "string" ? raw.case_id : undefined,
     timestamp: normalizeString(raw.timestamp, new Date().toISOString()),
     filename: filename || raw.filename || "sample_email.eml",
+    email_sha256: typeof raw.email_sha256 === "string" ? raw.email_sha256 : undefined,
+    // Explainable scoring — pass through as-is from backend
+    risk_score: typeof raw.risk_score === "number" ? raw.risk_score : undefined,
+    risk_level: typeof raw.risk_level === "string" ? raw.risk_level as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" : undefined,
+    confidence: typeof raw.confidence === "number" ? raw.confidence : undefined,
+    verdict: typeof raw.verdict === "string" ? raw.verdict : undefined,
+    risk_factors: Array.isArray(raw.risk_factors) ? raw.risk_factors : undefined,
+    risk_breakdown: riskBreakdown,
+    primary_evidence: Array.isArray(raw.primary_evidence) ? raw.primary_evidence : undefined,
+    recommended_actions: Array.isArray(raw.recommended_actions) ? raw.recommended_actions : undefined,
+    limitations: typeof raw.limitations === "string" ? raw.limitations : undefined,
+    // Core data
     forensics,
     threat_intel: threatIntel,
+    timeline,
     graph_data: graphData,
   };
 }

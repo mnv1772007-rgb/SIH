@@ -1,0 +1,401 @@
+{
+  "report_id": "a4bbb0fc-0d7c-4451-a39a-150b28ce8ac0",
+  "analyzed_at": "2026-09-10T12:03:40Z",
+  "source_file": "phishing_sample.eml",
+  "raw_email_sha256": "612ace33adfd8e855f6b147718cf978c97279d0ba50fc880b472a12cb2392d42",
+  "raw_email_size_bytes": 1916,
+  "headers": {
+    "from_address": "security@paypa1.com",
+    "from_display_name": "PayPal Security",
+    "to": [
+      "victim@gmail.com"
+    ],
+    "cc": [],
+    "bcc": [],
+    "reply_to": "collect-data@evil-login-verify.tk",
+    "return_path": "phish-bounce@evil-login-verify.tk",
+    "subject": "[ACTION REQUIRED] Your PayPal account has been limited!",
+    "date": "2024-01-01T10:00:00Z",
+    "message_id": "phish001@evil-login-verify.tk",
+    "in_reply_to": null,
+    "references": [],
+    "x_originating_ip": "45.142.212.100",
+    "x_mailer": "PhishKit v3.0",
+    "x_spam_status": null,
+    "x_spam_score": null,
+    "mime_version": "1.0",
+    "content_type": "text/html; charset=UTF-8",
+    "custom_headers": {},
+    "from_reply_to_mismatch": true,
+    "from_return_path_mismatch": true,
+    "display_name_spoofing_suspected": false
+  },
+  "auth": {
+    "spf": {
+      "result": "fail",
+      "domain": "paypa1.com",
+      "ip_checked": "127.0.0.1",
+      "record": "v=spf1 -all",
+      "explanation": "Matched 'all' mechanism"
+    },
+    "dkim": {
+      "result": "fail",
+      "domain": "evil-login-verify.tk",
+      "selector": "default",
+      "algorithm": "rsa-sha256",
+      "key_bits": null,
+      "header_hash": null,
+      "body_hash": "abc123fakedkhash=",
+      "error": "NXDOMAIN for DKIM key record default._domainkey.evil-login-verify.tk"
+    },
+    "dmarc": {
+      "result": "fail",
+      "domain": "paypa1.com",
+      "policy": "reject",
+      "subdomain_policy": null,
+      "pct": 100,
+      "rua": [
+        "mailto:d@rua.agari.com"
+      ],
+      "ruf": [
+        "mailto:d@ruf.agari.com"
+      ],
+      "spf_alignment": "fail",
+      "dkim_alignment": "fail",
+      "record": "v=DMARC1; p=reject; rua=mailto:d@rua.agari.com; ruf=mailto:d@ruf.agari.com",
+      "error": null
+    },
+    "arc": {
+      "result": "none",
+      "chain_length": 0,
+      "chain_valid": false,
+      "cv_field": null,
+      "error": "No ARC headers found"
+    }
+  },
+  "smtp_path": [
+    {
+      "hop": 1,
+      "from_host": "localhost",
+      "from_ip": "127.0.0.1",
+      "by_host": "mail.evil-login-verify.tk",
+      "with_protocol": "ESMTP",
+      "id": "xyz789",
+      "for_address": "victim@gmail.com",
+      "timestamp": "2024-01-01T09:59:45Z",
+      "delay_seconds": null,
+      "raw_header": "from localhost (localhost [127.0.0.1]) by mail.evil-login-verify.tk with ESMTP id xyz789 for <victim@gmail.com>; Mon, 01 Jan 2024 09:59:45 +0000",
+      "flags": [
+        "private_ip"
+      ]
+    },
+    {
+      "hop": 2,
+      "from_host": "mail.evil-login-verify.tk",
+      "from_ip": "45.142.212.100",
+      "by_host": "mx.gmail.com",
+      "with_protocol": "ESMTP",
+      "id": "abc123.456",
+      "for_address": "victim@gmail.com",
+      "timestamp": "2024-01-01T10:00:00Z",
+      "delay_seconds": 15.0,
+      "raw_header": "from mail.evil-login-verify.tk ([45.142.212.100]) by mx.gmail.com with ESMTP id abc123.456 for <victim@gmail.com>; Mon, 01 Jan 2024 10:00:00 +0000 (UTC)",
+      "flags": []
+    }
+  ],
+  "iocs": {
+    "urls": [
+      {
+        "url": "http://evil-login-verify.tk/paypal/verify?token=abc123&user=victim@gmail.com",
+        "defanged": "hxxp://evil-login-verify[.]tk/paypal/verify?token=abc123&user=victim@gmail.com",
+        "domain": "evil-login-verify.tk",
+        "scheme": "http",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      },
+      {
+        "url": "http://45.142.212.100/malware/stage2.php",
+        "defanged": "hxxp://45[.]142[.]212[.]100/malware/stage2.php",
+        "domain": "45.142.212.100",
+        "scheme": "http",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      }
+    ],
+    "ips": [
+      {
+        "ip": "127.0.0.1",
+        "ip_type": "loopback",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      },
+      {
+        "ip": "45.142.212.100",
+        "ip_type": "public",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      }
+    ],
+    "domains": [
+      {
+        "domain": "paypa1.com",
+        "registered_domain": "paypa1.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": true,
+        "age_days": null
+      },
+      {
+        "domain": "evil-login-verify.tk",
+        "registered_domain": "evil-login-verify.tk",
+        "tld": "tk",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "gmail.com",
+        "registered_domain": "gmail.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "45.142.212.100",
+        "registered_domain": "45.142.212.100",
+        "tld": null,
+        "subdomain": null,
+        "source": "url",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      }
+    ],
+    "attachments": [],
+    "body_text_sha256": null,
+    "body_html_sha256": "e1b5dbdb40583519d6a0490c3907d81fb0606702caa5b6b06a108243ba94d38c"
+  },
+  "origin": {
+    "probable_sending_ip": "45.142.212.100",
+    "probable_sending_host": "mail.evil-login-verify.tk",
+    "rdns": null,
+    "asn": "AS48031",
+    "asn_org": "XServerCloud - Ivanov Vitaliy Sergeevich, UA",
+    "country_code": "AE",
+    "country_name": "PL",
+    "isp": "AS48031 Ivanov Vitaliy Sergeevich",
+    "city": "Żyrardów",
+    "region": "Mazovia",
+    "latitude": 52.0488,
+    "longitude": 20.446,
+    "abuse_score": 0,
+    "threat_intel": {
+      "abuseipdb": {
+        "status": "available",
+        "ip": "45.142.212.100",
+        "abuse_confidence_score": 0,
+        "total_reports": 0,
+        "isp": "IT Hostline Ltd",
+        "domain": "ithostline.com",
+        "country_code": "PL",
+        "usage_type": "Data Center/Web Hosting/Transit",
+        "is_whitelisted": false,
+        "malicious": false
+      }
+    },
+    "is_cloud_provider": false,
+    "is_vpn_suspected": false,
+    "is_tor": false,
+    "confidence": "medium",
+    "method": "first_external_smtp_hop",
+    "note": "Probable sending MTA infrastructure — NOT the attacker's physical identity. IP geolocation is probabilistic."
+  },
+  "risk_signals": [
+    {
+      "signal_id": "AUTH-001",
+      "level": "high",
+      "category": "auth",
+      "description": "SPF FAIL — sending IP not authorized by domain",
+      "evidence": {
+        "spf_result": "fail",
+        "domain": "paypa1.com",
+        "ip": "127.0.0.1"
+      }
+    },
+    {
+      "signal_id": "AUTH-002",
+      "level": "high",
+      "category": "auth",
+      "description": "DKIM signature verification FAILED — message may be tampered",
+      "evidence": {
+        "domain": "evil-login-verify.tk",
+        "selector": "default",
+        "error": "NXDOMAIN for DKIM key record default._domainkey.evil-login-verify.tk"
+      }
+    },
+    {
+      "signal_id": "AUTH-003",
+      "level": "high",
+      "category": "auth",
+      "description": "DMARC FAILED — policy=DmarcPolicy.REJECT",
+      "evidence": {
+        "policy": "DmarcPolicy.REJECT",
+        "spf_align": "fail",
+        "dkim_align": "fail"
+      }
+    },
+    {
+      "signal_id": "HEADER-001",
+      "level": "medium",
+      "category": "header",
+      "description": "From domain ≠ Reply-To domain — potential reply hijacking",
+      "evidence": {
+        "from": "security@paypa1.com",
+        "reply_to": "collect-data@evil-login-verify.tk"
+      }
+    },
+    {
+      "signal_id": "HEADER-002",
+      "level": "medium",
+      "category": "header",
+      "description": "From domain ≠ Return-Path domain — potential spoofing",
+      "evidence": {
+        "from": "security@paypa1.com",
+        "return_path": "phish-bounce@evil-login-verify.tk"
+      }
+    },
+    {
+      "signal_id": "SMTP-001",
+      "level": "low",
+      "category": "smtp",
+      "description": "Private IP found in public SMTP relay chain at hop 1",
+      "evidence": {
+        "hop": 1,
+        "ip": "127.0.0.1"
+      }
+    },
+    {
+      "signal_id": "IOC-001",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxp://evil-login-verify[.]tk/paypal/verify?token=abc123&user=victim@gmail.com",
+      "evidence": {
+        "url": "hxxp://evil-login-verify[.]tk/paypal/verify?token=abc123&user=victim@gmail.com",
+        "domain": "evil-login-verify.tk",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "IOC-002",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxp://45[.]142[.]212[.]100/malware/stage2.php",
+      "evidence": {
+        "url": "hxxp://45[.]142[.]212[.]100/malware/stage2.php",
+        "domain": "45.142.212.100",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "IOC-003",
+      "level": "high",
+      "category": "ioc",
+      "description": "Possible typosquatting domain: paypa1.com",
+      "evidence": {
+        "domain": "paypa1.com"
+      }
+    }
+  ],
+  "threat_intelligence": {
+    "geolocation": {
+      "status": "available",
+      "ip": "45.142.212.100",
+      "city": "Żyrardów",
+      "region": "Mazovia",
+      "country": "PL",
+      "loc": "52.0488,20.4460",
+      "latitude": 52.0488,
+      "longitude": 20.446,
+      "org": "AS48031 Ivanov Vitaliy Sergeevich",
+      "postal": "96-300",
+      "timezone": "Europe/Warsaw"
+    },
+    "abuseipdb": {
+      "status": "available",
+      "ip": "45.142.212.100",
+      "abuse_confidence_score": 0,
+      "total_reports": 0,
+      "isp": "IT Hostline Ltd",
+      "domain": "ithostline.com",
+      "country_code": "PL",
+      "usage_type": "Data Center/Web Hosting/Transit",
+      "is_whitelisted": false,
+      "malicious": false
+    },
+    "virustotal": {
+      "hashes": [],
+      "urls": [
+        {
+          "status": "not_found",
+          "url": "http://evil-login-verify.tk/paypal/verify?token=abc123&user=victim@gmail.com",
+          "malicious": false
+        },
+        {
+          "status": "not_found",
+          "url": "http://45.142.212.100/malware/stage2.php",
+          "malicious": false
+        }
+      ],
+      "sending_ip": null
+    },
+    "urlscan": [
+      {
+        "status": "not_found",
+        "url": "http://evil-login-verify.tk/paypal/verify?token=abc123&user=victim@gmail.com",
+        "malicious": false
+      },
+      {
+        "status": "not_found",
+        "url": "http://45.142.212.100/malware/stage2.php",
+        "malicious": false
+      }
+    ]
+  },
+  "ai_assessment": {
+    "classification": "phishing",
+    "risk_score": 98,
+    "confidence": 0.99,
+    "executive_summary": "High-confidence phishing and malware delivery attempt impersonating PayPal via a typosquatted domain (paypa1.com). The email fails SPF, DKIM, and DMARC authentication and contains links leading to a credential harvesting site and a direct malware payload host.",
+    "attack_hypothesis": "The attacker leveraged a brand-impersonating typosquat domain and artificial urgency ('account limited') to drive the victim to a credential-harvesting phishing page (evil-login-verify.tk) and potentially trigger a secondary stage-2 malware payload directly from the rogue IP (45.142.212.100).",
+    "phishing_tactics": [
+      "Brand Impersonation",
+      "Typosquatting",
+      "Urgency",
+      "Credential Harvesting",
+      "Malware Delivery"
+    ],
+    "recommended_actions": [
+      "Block the typosquatted domain paypa1.com and sender IP 45.142.212.100 across email and firewall controls.",
+      "Blacklist malicious URLs (evil-login-verify.tk and IP-based malware URL) on network proxies and DNS security filters.",
+      "Purge this email message from all user mailboxes globally.",
+      "Check web proxy logs for any outbound traffic to 45.142.212.100 or evil-login-verify.tk to identify impacted hosts.",
+      "If the target user interacted with the links, immediately isolate the endpoint and perform a credential reset."
+    ],
+    "status": "available",
+    "provider": "Google Gemini",
+    "model": "gemini-3.6-flash"
+  },
+  "pipeline_version": "1.0.0",
+  "processing_errors": []
+}

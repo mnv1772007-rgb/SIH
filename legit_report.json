@@ -1,0 +1,302 @@
+{
+  "report_id": "d241e2b1-aa67-40ed-8cd0-682fff1cb913",
+  "analyzed_at": "2026-09-10T12:25:17Z",
+  "source_file": "legitimate_sample.eml",
+  "raw_email_sha256": "47501449bb6abd1013628365b3bef44eb9667175abe5a26350dfd0efa386d064",
+  "raw_email_size_bytes": 1993,
+  "headers": {
+    "from_address": "newsletter@google.com",
+    "from_display_name": "Google",
+    "to": [
+      "user@example.com"
+    ],
+    "cc": [],
+    "bcc": [],
+    "reply_to": null,
+    "return_path": "newsletter@google.com",
+    "subject": "Your Google Account activity summary - January 2024",
+    "date": "2024-01-03T12:00:00Z",
+    "message_id": "legit20240103120000@google.com",
+    "in_reply_to": null,
+    "references": [],
+    "x_originating_ip": null,
+    "x_mailer": "Google Mail",
+    "x_spam_status": null,
+    "x_spam_score": null,
+    "mime_version": "1.0",
+    "content_type": "text/plain; charset=UTF-8",
+    "custom_headers": {},
+    "from_reply_to_mismatch": false,
+    "from_return_path_mismatch": false,
+    "display_name_spoofing_suspected": false
+  },
+  "auth": {
+    "spf": {
+      "result": "pass",
+      "domain": "google.com",
+      "ip_checked": "209.85.128.73",
+      "record": "v=spf1 include:_spf.google.com ~all",
+      "explanation": "Matched include:_spf.google.com"
+    },
+    "dkim": {
+      "result": "fail",
+      "domain": "google.com",
+      "selector": "20230601",
+      "algorithm": "rsa-sha256",
+      "key_bits": null,
+      "header_hash": null,
+      "body_hash": "legitimatebodyhash=",
+      "error": "Key record has empty p= (key revoked)"
+    },
+    "dmarc": {
+      "result": "pass",
+      "domain": "google.com",
+      "policy": "reject",
+      "subdomain_policy": null,
+      "pct": 100,
+      "rua": [
+        "mailto:mailauth-reports@google.com"
+      ],
+      "ruf": [],
+      "spf_alignment": "pass",
+      "dkim_alignment": "fail",
+      "record": "v=DMARC1; p=reject; rua=mailto:mailauth-reports@google.com",
+      "error": null
+    },
+    "arc": {
+      "result": "pass",
+      "chain_length": 1,
+      "chain_valid": true,
+      "cv_field": "none",
+      "error": null
+    }
+  },
+  "smtp_path": [
+    {
+      "hop": 1,
+      "from_host": null,
+      "from_ip": null,
+      "by_host": "mail-wm1-f73.google.com",
+      "with_protocol": "SMTP",
+      "id": "legit-smtp-001",
+      "for_address": "user@example.com",
+      "timestamp": "2024-01-03T12:00:00Z",
+      "delay_seconds": null,
+      "raw_header": "by mail-wm1-f73.google.com with SMTP id legit-smtp-001 for <user@example.com>; Wed, 03 Jan 2024 12:00:00 +0000 (UTC)",
+      "flags": []
+    },
+    {
+      "hop": 2,
+      "from_host": "mail-wm1-f73.google.com",
+      "from_ip": "209.85.128.73",
+      "by_host": "mx.example.com",
+      "with_protocol": "ESMTPS",
+      "id": "legit001.123",
+      "for_address": "user@example.com",
+      "timestamp": "2024-01-03T12:00:00Z",
+      "delay_seconds": 0.0,
+      "raw_header": "from mail-wm1-f73.google.com (mail-wm1-f73.google.com [209.85.128.73]) by mx.example.com with ESMTPS id legit001.123 for <user@example.com>; Wed, 03 Jan 2024 12:00:00 +0000 (UTC)",
+      "flags": []
+    }
+  ],
+  "iocs": {
+    "urls": [
+      {
+        "url": "https://myaccount.google.com",
+        "defanged": "hxxps://myaccount[.]google[.]com",
+        "domain": "google.com",
+        "scheme": "https",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      }
+    ],
+    "ips": [
+      {
+        "ip": "209.85.128.73",
+        "ip_type": "public",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      }
+    ],
+    "domains": [
+      {
+        "domain": "google.com",
+        "registered_domain": "google.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "example.com",
+        "registered_domain": "example.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "myaccount.google.com",
+        "registered_domain": "google.com",
+        "tld": "com",
+        "subdomain": "myaccount",
+        "source": "body",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      }
+    ],
+    "attachments": [],
+    "body_text_sha256": "2fc1ae1c35b9317db352b35e2c532be55f2fc15e298abf2a67987993658709c3",
+    "body_html_sha256": null
+  },
+  "origin": {
+    "probable_sending_ip": "209.85.128.73",
+    "probable_sending_host": "mail-wm1-f73.google.com",
+    "rdns": "mail-wm1-f73.google.com",
+    "asn": "AS15169",
+    "asn_org": "GOOGLE - Google LLC, US",
+    "country_code": "US",
+    "country_name": "BE",
+    "isp": "AS15169 Google LLC",
+    "city": "Brussels",
+    "region": "Brussels Capital",
+    "latitude": 50.8505,
+    "longitude": 4.3488,
+    "abuse_score": 0,
+    "threat_intel": {
+      "abuseipdb": {
+        "status": "available",
+        "ip": "209.85.128.73",
+        "abuse_confidence_score": 0,
+        "total_reports": 0,
+        "isp": "Google LLC",
+        "domain": "google.com",
+        "country_code": "BE",
+        "usage_type": "Data Center/Web Hosting/Transit",
+        "is_whitelisted": true,
+        "malicious": false
+      }
+    },
+    "is_cloud_provider": true,
+    "is_vpn_suspected": false,
+    "is_tor": false,
+    "confidence": "medium",
+    "method": "first_external_smtp_hop",
+    "note": "Probable sending MTA infrastructure — NOT the attacker's physical identity. IP geolocation is probabilistic."
+  },
+  "risk_signals": [
+    {
+      "signal_id": "AUTH-001",
+      "level": "high",
+      "category": "auth",
+      "description": "DKIM signature verification FAILED — message may be tampered",
+      "evidence": {
+        "domain": "google.com",
+        "selector": "20230601",
+        "error": "Key record has empty p= (key revoked)"
+      }
+    },
+    {
+      "signal_id": "IOC-001",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxps://myaccount[.]google[.]com",
+      "evidence": {
+        "url": "hxxps://myaccount[.]google[.]com",
+        "domain": "google.com",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "ORIGIN-001",
+      "level": "info",
+      "category": "origin",
+      "description": "Probable sending infrastructure is a cloud/hosting provider",
+      "evidence": {
+        "ip": "209.85.128.73",
+        "org": "GOOGLE - Google LLC, US"
+      }
+    }
+  ],
+  "threat_intelligence": {
+    "geolocation": {
+      "status": "available",
+      "ip": "209.85.128.73",
+      "city": "Brussels",
+      "region": "Brussels Capital",
+      "country": "BE",
+      "loc": "50.8505,4.3488",
+      "latitude": 50.8505,
+      "longitude": 4.3488,
+      "org": "AS15169 Google LLC",
+      "postal": "1000",
+      "timezone": "Europe/Brussels"
+    },
+    "abuseipdb": {
+      "status": "available",
+      "ip": "209.85.128.73",
+      "abuse_confidence_score": 0,
+      "total_reports": 0,
+      "isp": "Google LLC",
+      "domain": "google.com",
+      "country_code": "BE",
+      "usage_type": "Data Center/Web Hosting/Transit",
+      "is_whitelisted": true,
+      "malicious": false
+    },
+    "virustotal": {
+      "hashes": [],
+      "urls": [
+        {
+          "status": "available",
+          "url": "https://myaccount.google.com",
+          "malicious": false,
+          "malicious_count": 0,
+          "suspicious_count": 0,
+          "harmless_count": 60
+        }
+      ],
+      "sending_ip": null
+    },
+    "urlscan": [
+      {
+        "status": "available",
+        "url": "https://myaccount.google.com",
+        "malicious": false,
+        "score": 0,
+        "categories": [],
+        "screenshot": "https://urlscan.io/screenshots/01a08969-1130-772a-bbf8-cbf5ae5fa824.png",
+        "domain": "myaccount.google.com",
+        "ip": "2a00:1450:4001:c21::54"
+      }
+    ]
+  },
+  "ai_assessment": {
+    "classification": "suspicious",
+    "risk_score": 35,
+    "confidence": 0.85,
+    "executive_summary": "The email originates from legitimate Google IP infrastructure and contains standard Google URLs, but failed DKIM verification. While SPF and DMARC passed, the broken DKIM signature suggests potential message modification in transit or a relay misconfiguration.",
+    "attack_hypothesis": "The message is likely a legitimate notification that experienced header alteration or body modifications during routing, though the possibility of a sophisticated relay-based spoofing attempt cannot be entirely ruled out.",
+    "phishing_tactics": [
+      "DKIM Signature Manipulation",
+      "Brand Impersonation"
+    ],
+    "recommended_actions": [
+      "Inspect raw RFC 822 email headers to trace routing hop modifications causing the DKIM failure.",
+      "Verify the strictness of the domain's DMARC policy (p=reject vs p=none) regarding unauthenticated DKIM messages.",
+      "Perform automated payload inspection on the URL to confirm lack of hidden redirects."
+    ],
+    "status": "available",
+    "provider": "Google Gemini",
+    "model": "gemini-3.6-flash"
+  },
+  "pipeline_version": "1.0.0",
+  "processing_errors": []
+}

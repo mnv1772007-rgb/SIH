@@ -1,0 +1,312 @@
+{
+  "report_id": "dad09d5d-b029-472d-bf34-cc192b49cca2",
+  "analyzed_at": "2026-09-10T21:28:38Z",
+  "source_file": "phishing_paypal.eml",
+  "raw_email_sha256": "919a4c4bc156075f83d54b0884e5021d5fb7590f11b35f4f94e136e2a4837de9",
+  "raw_email_size_bytes": 3012,
+  "headers": {
+    "from_address": "security-alert@paypa1-secure.com",
+    "from_display_name": null,
+    "to": [
+      "victim@example.com"
+    ],
+    "cc": [],
+    "bcc": [],
+    "reply_to": null,
+    "return_path": "bounce@paypa1-secure.com",
+    "subject": "URGENT: Your PayPal Account Has Been Limited - Action Required",
+    "date": "2026-09-10T13:23:11Z",
+    "message_id": "20260910082311.1a2b3c4d@paypa1-secure.com",
+    "in_reply_to": null,
+    "references": [],
+    "x_originating_ip": null,
+    "x_mailer": "PHPMailer 5.2.0",
+    "x_spam_status": "Yes, score=8.4",
+    "x_spam_score": null,
+    "mime_version": "1.0",
+    "content_type": "multipart/mixed; boundary=\"----=_Part_4821_1234567890\"",
+    "custom_headers": {
+      "X-Priority": "1 (Highest)"
+    },
+    "from_reply_to_mismatch": false,
+    "from_return_path_mismatch": false,
+    "display_name_spoofing_suspected": false
+  },
+  "auth": {
+    "spf": {
+      "result": "none",
+      "domain": "paypa1-secure.com",
+      "ip_checked": "91.108.4.120",
+      "record": null,
+      "explanation": "NXDOMAIN for paypa1-secure.com"
+    },
+    "dkim": {
+      "result": "none",
+      "domain": null,
+      "selector": null,
+      "algorithm": null,
+      "key_bits": null,
+      "header_hash": null,
+      "body_hash": null,
+      "error": "No DKIM-Signature header found"
+    },
+    "dmarc": {
+      "result": "none",
+      "domain": "paypa1-secure.com",
+      "policy": null,
+      "subdomain_policy": null,
+      "pct": null,
+      "rua": [],
+      "ruf": [],
+      "spf_alignment": null,
+      "dkim_alignment": null,
+      "record": null,
+      "error": "No DMARC record at _dmarc.paypa1-secure.com"
+    },
+    "arc": {
+      "result": "none",
+      "chain_length": 0,
+      "chain_valid": false,
+      "cv_field": null,
+      "error": "No ARC headers found"
+    }
+  },
+  "smtp_path": [
+    {
+      "hop": 1,
+      "from_host": "[192.168.1.100]",
+      "from_ip": "91.108.4.120",
+      "by_host": "mail.paypa1-secure.com",
+      "with_protocol": "ESMTPA",
+      "id": "F6G7H8I9J0",
+      "for_address": "victim@example.com",
+      "timestamp": "2026-09-10T13:23:10Z",
+      "delay_seconds": null,
+      "raw_header": "from [192.168.1.100] (unknown [91.108.4.120]) by mail.paypa1-secure.com (Postfix) with ESMTPA id F6G7H8I9J0 for <victim@example.com>; Wed, 10 Sep 2026 08:23:10 -0500 (CDT)",
+      "flags": []
+    },
+    {
+      "hop": 2,
+      "from_host": "mail.paypa1-secure.com",
+      "from_ip": "185.220.101.45",
+      "by_host": "mx.example.com",
+      "with_protocol": "ESMTP",
+      "id": "A1B2C3D4E5",
+      "for_address": "victim@example.com",
+      "timestamp": "2026-09-10T13:23:15Z",
+      "delay_seconds": 5.0,
+      "raw_header": "from mail.paypa1-secure.com (unknown [185.220.101.45]) by mx.example.com (Postfix) with ESMTP id A1B2C3D4E5 for <victim@example.com>; Wed, 10 Sep 2026 08:23:15 -0500 (CDT)",
+      "flags": []
+    }
+  ],
+  "iocs": {
+    "urls": [
+      {
+        "url": "http://paypa1-verify.ru/secure/login?ref¬C38271&track=email",
+        "defanged": "hxxp://paypa1-verify[.]ru/secure/login?ref¬C38271&track=email",
+        "domain": "paypa1-verify.ru",
+        "scheme": "http",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      },
+      {
+        "url": "http://track.paypa1-secure.com/open?uid=victim@example.com&cid8271",
+        "defanged": "hxxp://track[.]paypa1-secure[.]com/open?uid=victim@example.com&cid8271",
+        "domain": "paypa1-secure.com",
+        "scheme": "http",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      },
+      {
+        "url": "http://paypa1-verify.ru/secure/login?ref",
+        "defanged": "hxxp://paypa1-verify[.]ru/secure/login?ref",
+        "domain": "paypa1-verify.ru",
+        "scheme": "http",
+        "source": "body",
+        "suspicious": true,
+        "redirect_chain": []
+      }
+    ],
+    "ips": [
+      {
+        "ip": "91.108.4.120",
+        "ip_type": "public",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      },
+      {
+        "ip": "185.220.101.45",
+        "ip_type": "public",
+        "source": "smtp_path",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      },
+      {
+        "ip": "192.168.1.100",
+        "ip_type": "private",
+        "source": "header",
+        "is_tor_exit": false,
+        "reverse_dns": null
+      }
+    ],
+    "domains": [
+      {
+        "domain": "paypa1-secure.com",
+        "registered_domain": "paypa1-secure.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "example.com",
+        "registered_domain": "example.com",
+        "tld": "com",
+        "subdomain": null,
+        "source": "header",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "paypa1-verify.ru",
+        "registered_domain": "paypa1-verify.ru",
+        "tld": "ru",
+        "subdomain": null,
+        "source": "url",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      },
+      {
+        "domain": "track.paypa1-secure.com",
+        "registered_domain": "paypa1-secure.com",
+        "tld": "com",
+        "subdomain": "track",
+        "source": "body",
+        "homoglyph_suspected": false,
+        "typosquat_suspected": false,
+        "age_days": null
+      }
+    ],
+    "attachments": [
+      {
+        "filename": "account_notice.pdf",
+        "content_type": "application/pdf",
+        "size_bytes": 179,
+        "md5": "bb511bbe26d1bff4add44fbf68075395",
+        "sha1": "e62639ea2f150810f2dc9286ba2886d6aee9feeb",
+        "sha256": "090e62d2d67639308b68283e6603ff63c6d6ac6ce7ae478f8219b1680f92848f",
+        "is_executable": false,
+        "is_archive": false,
+        "is_office_doc": true,
+        "contains_macros": null
+      }
+    ],
+    "body_text_sha256": null,
+    "body_html_sha256": "7821c0e5d7f4281f37fbcfa2978db34fec63cf5f762a34888f00a31d016266b1"
+  },
+  "origin": {
+    "probable_sending_ip": "91.108.4.120",
+    "probable_sending_host": "[192.168.1.100]",
+    "rdns": null,
+    "asn": "AS62041",
+    "asn_org": "Telegram - Telegram Messenger Inc, VG",
+    "country_code": "AG",
+    "country_name": "NL",
+    "isp": "MNT-TELEGRAM",
+    "city": null,
+    "region": null,
+    "latitude": null,
+    "longitude": null,
+    "abuse_score": null,
+    "threat_intel": {},
+    "is_cloud_provider": false,
+    "is_vpn_suspected": false,
+    "is_tor": false,
+    "confidence": "high",
+    "method": "first_external_smtp_hop",
+    "note": "Probable sending MTA infrastructure — NOT the attacker's physical identity. IP geolocation is probabilistic."
+  },
+  "risk_signals": [
+    {
+      "signal_id": "AUTH-001",
+      "level": "low",
+      "category": "auth",
+      "description": "No SPF record published — cannot validate sender",
+      "evidence": {
+        "domain": "paypa1-secure.com"
+      }
+    },
+    {
+      "signal_id": "AUTH-002",
+      "level": "low",
+      "category": "auth",
+      "description": "No DKIM signature found",
+      "evidence": {
+        "domain": "security-alert@paypa1-secure.com"
+      }
+    },
+    {
+      "signal_id": "AUTH-003",
+      "level": "low",
+      "category": "auth",
+      "description": "No DMARC record — domain has no email policy enforcement",
+      "evidence": {
+        "domain": "paypa1-secure.com"
+      }
+    },
+    {
+      "signal_id": "IOC-001",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxp://paypa1-verify[.]ru/secure/login?ref¬C38271&track=email",
+      "evidence": {
+        "url": "hxxp://paypa1-verify[.]ru/secure/login?ref¬C38271&track=email",
+        "domain": "paypa1-verify.ru",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "IOC-002",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxp://track[.]paypa1-secure[.]com/open?uid=victim@example.com&cid8271",
+      "evidence": {
+        "url": "hxxp://track[.]paypa1-secure[.]com/open?uid=victim@example.com&cid8271",
+        "domain": "paypa1-secure.com",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "IOC-003",
+      "level": "high",
+      "category": "ioc",
+      "description": "Suspicious URL detected: hxxp://paypa1-verify[.]ru/secure/login?ref",
+      "evidence": {
+        "url": "hxxp://paypa1-verify[.]ru/secure/login?ref",
+        "domain": "paypa1-verify.ru",
+        "source": "body"
+      }
+    },
+    {
+      "signal_id": "IOC-004",
+      "level": "medium",
+      "category": "ioc",
+      "description": "Potentially risky attachment: account_notice.pdf",
+      "evidence": {
+        "filename": "account_notice.pdf",
+        "sha256": "090e62d2d67639308b68283e6603ff63c6d6ac6ce7ae478f8219b1680f92848f"
+      }
+    }
+  ],
+  "threat_intelligence": {},
+  "ai_assessment": {},
+  "pipeline_version": "1.0.0",
+  "processing_errors": []
+}

@@ -17,6 +17,8 @@ import { MitreAttackSection } from "@/components/dashboard/MitreAttackSection";
 import { EmailBodyPreview } from "@/components/dashboard/EmailBodyPreview";
 import { GlobalThreatFeedSection } from "@/components/dashboard/GlobalThreatFeedSection";
 import { Footer } from "@/components/dashboard/Footer";
+import { VerdictCard } from "@/components/dashboard/VerdictCard";
+import { ForensicTimeline } from "@/components/dashboard/ForensicTimeline";
 import { ToastContainer, ToastMessage } from "@/components/ui/Toast";
 
 // User reference coordinates (San Francisco client HQ)
@@ -363,6 +365,16 @@ export default function SheildMailDashboard() {
                       {new Date(analysisData.timestamp || Date.now()).toLocaleTimeString()}
                     </span>
                   </div>
+
+                  {analysisData.case_id && (
+                    <>
+                      <span className="text-zinc-700 hidden sm:inline">|</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-zinc-500">CASE:</span>
+                        <span className="text-emerald-400 font-bold">{analysisData.case_id}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2.5">
@@ -388,11 +400,19 @@ export default function SheildMailDashboard() {
                 </div>
               </motion.div>
 
+              {/* Verdict + Risk Breakdown Card */}
+              <VerdictCard data={analysisData} />
+
               {/* Section A: Authentication & Header Forensics */}
               <ForensicsSection
                 forensics={analysisData.forensics}
                 threatIntel={analysisData.threat_intel}
               />
+
+              {/* Section A2: Forensic Timeline */}
+              {analysisData.timeline && analysisData.timeline.length > 0 && (
+                <ForensicTimeline events={analysisData.timeline} />
+              )}
 
               {/* Section B: Threat Intel & AI Assessment */}
               <ThreatIntelSection
