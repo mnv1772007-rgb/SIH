@@ -1,0 +1,14 @@
+{
+  "model_name": "email-threat-baseline",
+  "version": "1.0.0",
+  "feature_version": "1.0",
+  "classes": [
+    "bec",
+    "benign",
+    "impersonation",
+    "phishing",
+    "spam"
+  ],
+  "numeric_features_count": 63,
+  "saved_at": "2026-09-10T10:30:41.804896+00:00"
+}

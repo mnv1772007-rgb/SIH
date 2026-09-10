@@ -1,0 +1,28 @@
+text_features:
+  tfidf_max_features: 10000
+  tfidf_ngram_range: [1, 2]
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  readability_metrics: true
+
+metadata_features:
+  auth_spf_dkim_dmarc: true
+  header_consistency: true
+  routing_hops: true
+  sender_domain_age: true
+  sender_reputation: true
+
+behavioral_features:
+  display_name_embedding: true
+  reply_to_mismatch: true
+  urgency_keywords: true
+  financial_keywords: true
+  credential_keywords: true
+
+structural_features:
+  html_ratio: true
+  attachment_count: true
+  executable_attachment: true
+  url_count: true
+  url_entropy: true
+  punycode_domains: true
+  ip_based_urls: true

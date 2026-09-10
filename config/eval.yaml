@@ -1,0 +1,42 @@
+production_thresholds:
+  phishing:
+    min_precision: 0.97
+    min_recall: 0.90
+    min_f1: 0.93
+    min_auc_roc: 0.98
+    min_auc_pr: 0.95
+
+  spam:
+    min_precision: 0.95
+    min_recall: 0.92
+    min_f1: 0.93
+    min_auc_roc: 0.97
+
+  bec:
+    min_precision: 0.99
+    min_recall: 0.85
+    min_f1: 0.91
+    min_auc_roc: 0.96
+
+  impersonation:
+    min_precision: 0.98
+    min_recall: 0.88
+    min_f1: 0.92
+    min_auc_roc: 0.97
+
+risk_calibration:
+  score_to_precision:
+    90: 0.99
+    80: 0.97
+    70: 0.93
+    60: 0.88
+    50: 0.80
+    40: 0.65
+    30: 0.45
+
+data_splits:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+  stratify_by: "label"
+  temporal_split: true
