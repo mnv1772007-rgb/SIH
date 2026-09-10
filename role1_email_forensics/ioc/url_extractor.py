@@ -105,15 +105,33 @@ def _build_url(url: str, source: str) -> ExtractedUrl:
     )
 
 
+_TRUSTED_URL_DOMAINS = {
+    "linkedin.com", "google.com", "microsoft.com", "apple.com", "github.com",
+    "amazon.com", "twitter.com", "x.com", "youtube.com", "facebook.com",
+    "instagram.com", "office.com", "live.com", "outlook.com",
+}
+
+
 def _is_suspicious(url: str, extracted: tldextract.tldextract.ExtractResult) -> bool:
-    if extracted.suffix in _SUSPICIOUS_TLDS:
-        return True
-    if _SUSPICIOUS_KEYWORDS.search(url):
-        return True
-    # Numeric IP instead of hostname
+    reg = getattr(extracted, "top_domain_under_public_suffix", None) or extracted.registered_domain or ""
+    is_trusted = reg.lower() in _TRUSTED_URL_DOMAINS
+
+    # Numeric IP instead of hostname is always suspicious
     if re.match(r"https?://\d+\.\d+\.\d+\.\d+", url):
         return True
-    # Excessively long URL (>200 chars)
-    if len(url) > 200:
+
+    # Suspicious TLD
+    if extracted.suffix in _SUSPICIOUS_TLDS:
         return True
+
+    # Phishing / credential harvesting keywords in path or query
+    # (only check path/query if on trusted domain, e.g. open redirects)
+    if _SUSPICIOUS_KEYWORDS.search(url):
+        if not is_trusted:
+            return True
+
+    # Excessively long URL (>200 chars) on UNTRUSTED domains
+    if len(url) > 200 and not is_trusted:
+        return True
+
     return False

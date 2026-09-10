@@ -124,20 +124,25 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
     suspicious_urls = [u for u in report.iocs.urls if u.suspicious]
     if suspicious_urls:
         pts = min(20, 10 * len(suspicious_urls))
+        sample_urls = ", ".join(u.domain or u.defanged[:30] for u in suspicious_urls[:2])
+        first_defanged = suspicious_urls[0].defanged
+        short_defanged = first_defanged[:55] + "..." if len(first_defanged) > 55 else first_defanged
         add("SUSPICIOUS URL(S)", "ioc", pts,
-            f"{len(suspicious_urls)} suspicious URL(s) embedded: {[u.defanged for u in suspicious_urls[:2]]}",
-            f"Suspicious URL: {suspicious_urls[0].defanged}")
+            f"{len(suspicious_urls)} suspicious URL(s) detected (e.g. {sample_urls})",
+            f"Suspicious URL: {short_defanged}")
 
     homoglyph = [d for d in report.iocs.domains if d.homoglyph_suspected]
     if homoglyph:
+        domains_str = ", ".join(d.domain for d in homoglyph[:2])
         add("HOMOGLYPH DOMAIN", "ioc", 12,
-            f"Lookalike/IDN domain(s): {[d.domain for d in homoglyph[:2]]}",
+            f"Lookalike/IDN domain(s): {domains_str}",
             f"Homoglyph domain: {homoglyph[0].domain}")
 
     typosquat = [d for d in report.iocs.domains if d.typosquat_suspected]
     if typosquat:
+        domains_str = ", ".join(d.domain for d in typosquat[:2])
         add("TYPOSQUAT DOMAIN", "ioc", 10,
-            f"Typosquatting domain(s): {[d.domain for d in typosquat[:2]]}",
+            f"Typosquatting domain(s): {domains_str}",
             f"Typosquatting domain: {typosquat[0].domain}")
 
     for att in report.iocs.attachments:
@@ -211,6 +216,24 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
         add("URLSCAN MALICIOUS URL", "threat_intel", 15,
             f"URL malicious on urlscan.io (score={mal_urlscan[0].get('score',0)})",
             "URLScan.io confirmed malicious URL")
+
+    # Neural AI Threat Intent
+    ai_res = getattr(report, "ai_assessment", {}) or {}
+    if isinstance(ai_res, dict) and ai_res.get("status") == "available":
+        intent = str(ai_res.get("classification") or "").lower()
+        ai_conf = float(ai_res.get("confidence") or 0.0)
+        if ai_conf > 1.0:
+            ai_conf = ai_conf / 100.0
+        if intent in ("phishing", "bec", "malware", "social_engineering", "suspicious"):
+            pts = 25 if (intent in ("phishing", "malware") and ai_conf >= 0.8) else 15
+            add(
+                f"AI DETECTED INTENT ({intent.upper()})",
+                "threat_intel",
+                pts,
+                f"Neural NLP intent model detected {intent.upper()} ({int(ai_conf * 100)}% confidence)",
+                f"AI Threat Assessment: {intent.upper()} (Confidence: {int(ai_conf * 100)}%)",
+            )
+            telemetry_count += 1
 
     # ---- 6. Score & Level -------------------------------------------------
     risk_score = max(0, min(100, round(confirmed_points)))

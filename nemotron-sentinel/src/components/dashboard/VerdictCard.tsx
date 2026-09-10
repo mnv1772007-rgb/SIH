@@ -106,24 +106,24 @@ export function VerdictCard({ data }: VerdictCardProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         {/* Left: Risk Breakdown */}
         {breakdown.length > 0 && (
-          <div>
+          <div className="min-w-0 overflow-hidden">
             <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
               <Shield className="w-3 h-3" /> RISK FACTORS BREAKDOWN
             </p>
             <div className="space-y-2">
               {breakdown.map((item: RiskBreakdownItem, i) => (
-                <div key={i} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg bg-white/[0.03] border border-white/5">
+                <div key={i} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg bg-white/[0.03] border border-white/5 overflow-hidden">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className={`text-[10px] font-mono uppercase font-bold ${CATEGORY_COLORS[item.category] || "text-zinc-400"}`}>
+                      <span className={`text-[10px] font-mono uppercase font-bold shrink-0 ${CATEGORY_COLORS[item.category] || "text-zinc-400"}`}>
                         [{item.category}]
                       </span>
                       <span className="text-[11px] font-semibold text-zinc-200 truncate">{item.factor}</span>
                     </div>
-                    <p className="text-[10px] text-zinc-500 leading-relaxed">{item.reason}</p>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed break-words break-all">{item.reason}</p>
                   </div>
                   <span className={`shrink-0 text-xs font-mono font-bold ${cfg.text} px-2 py-0.5 rounded bg-white/5`}>
                     +{item.points}pts
@@ -135,18 +135,18 @@ export function VerdictCard({ data }: VerdictCardProps) {
         )}
 
         {/* Right: Evidence + Actions */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 overflow-hidden">
           {/* Primary Evidence */}
           {evidence.length > 0 && (
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Info className="w-3 h-3" /> PRIMARY EVIDENCE
               </p>
               <ul className="space-y-1.5">
                 {evidence.map((e, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[11px] text-zinc-300 font-mono">
+                  <li key={i} className="flex items-start gap-2 text-[11px] text-zinc-300 font-mono overflow-hidden">
                     <ChevronRight className={`w-3 h-3 mt-0.5 shrink-0 ${cfg.text}`} />
-                    <span className="leading-relaxed">{e}</span>
+                    <span className="leading-relaxed break-words break-all">{e}</span>
                   </li>
                 ))}
               </ul>

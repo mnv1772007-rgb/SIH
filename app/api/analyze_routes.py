@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from role1_email_forensics.main import analyze_eml_bytes
 from role1_email_forensics.risk.explainable_scorer import compute_explainable_score
 from role1_email_forensics.timeline.timeline_builder import build_timeline
+from app.services.case_service import case_service
 
 router = APIRouter()
 
@@ -413,14 +414,25 @@ async def analyze_email_file(
     timeline = build_timeline(report)
 
     # ── 3. Forensics data ───────────────────────────────────────────────────
+    sender_domain = "unknown"
+    if report.headers.from_address and '@' in report.headers.from_address:
+        sender_domain = report.headers.from_address.split('@')[-1]
+    elif report.headers.return_path and '@' in report.headers.return_path:
+        sender_domain = report.headers.return_path.split('@')[-1]
+    elif report.headers.reply_to and '@' in report.headers.reply_to:
+        sender_domain = report.headers.reply_to.split('@')[-1]
+
+    origin_ip = (
+        report.origin.probable_sending_ip
+        or report.headers.x_originating_ip
+        or (report.smtp_path[0].from_ip if report.smtp_path and report.smtp_path[0].from_ip else None)
+        or (report.iocs.ips[0].ip if report.iocs.ips else "unknown")
+    )
+
     forensics_data = {
         "message_id": report.headers.message_id or f"<{report.report_id}@sentinel.internal>",
-        "sender_domain": (
-            report.headers.from_address.split('@')[-1]
-            if report.headers.from_address and '@' in report.headers.from_address
-            else "unknown"
-        ),
-        "origin_ip": report.origin.probable_sending_ip or "unknown",
+        "sender_domain": sender_domain,
+        "origin_ip": origin_ip,
         "spf_status": (
             report.auth.spf.result.value if hasattr(report.auth.spf.result, "value")
             else str(report.auth.spf.result)
@@ -486,7 +498,7 @@ async def analyze_email_file(
     # ── 5. Graph Data ────────────────────────────────────────────────────────
     graph_data = build_comprehensive_forensics_graph(report, actual_filename)
 
-    # ── 6. Final Response ────────────────────────────────────────────────────
+    # ── 6. Final Response & Case Persistence ────────────────────────────────
     response_data = {
         "scan_id": f"SHIELD-{report.report_id[:8].upper()}",
         "case_id": case_id,
@@ -512,5 +524,19 @@ async def analyze_email_file(
         # Graph
         "graph_data": graph_data,
     }
+
+    try:
+        case_service.save_case(
+            case_id=case_id,
+            filename=actual_filename,
+            sha256=email_sha256,
+            verdict=verdict,
+            risk_score=risk_score,
+            risk_level=risk_level,
+            full_result=response_data,
+        )
+    except Exception as e:
+        # Persistence failure should never break analysis response
+        pass
 
     return response_data

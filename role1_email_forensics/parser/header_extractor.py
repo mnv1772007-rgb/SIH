@@ -42,26 +42,30 @@ def extract_headers(msg: email.message.Message) -> HeaderAnalysis:
     ha = HeaderAnalysis()
 
     # ------------------------------------------------------------------ From
-    raw_from = msg.get("From", "")
+    raw_from = msg.get("From", "") or msg.get("from", "") or msg.get("Sender", "")
     display_name, from_addr = extract_email_address(raw_from)
+    if not from_addr:
+        _, fallback_addr = extract_email_address(msg.get("Sender", "") or msg.get("Return-Path", "") or msg.get("reply-to", ""))
+        from_addr = fallback_addr
     ha.from_address       = from_addr
     ha.from_display_name  = display_name
 
     # ------------------------------------------------------------------ To / CC / BCC
-    ha.to  = _parse_address_list(msg.get_all("To", []))
-    ha.cc  = _parse_address_list(msg.get_all("CC", []))
-    ha.bcc = _parse_address_list(msg.get_all("BCC", []))
+    ha.to  = _parse_address_list(msg.get_all("To", []) or msg.get_all("to", []))
+    ha.cc  = _parse_address_list(msg.get_all("CC", []) or msg.get_all("cc", []))
+    ha.bcc = _parse_address_list(msg.get_all("BCC", []) or msg.get_all("bcc", []))
 
     # ------------------------------------------------------------------ Reply-To
-    raw_rt = msg.get("Reply-To", "")
+    raw_rt = msg.get("Reply-To", "") or msg.get("reply-to", "")
     _, ha.reply_to = extract_email_address(raw_rt)
 
     # ------------------------------------------------------------------ Return-Path
-    raw_rp = msg.get("Return-Path", "")
+    raw_rp = msg.get("Return-Path", "") or msg.get("return-path", "")
     _, ha.return_path = extract_email_address(raw_rp)
 
     # ------------------------------------------------------------------ Subject
-    ha.subject = decode_mime_words(msg.get("Subject", "")) or None
+    raw_subj = msg.get("Subject", "") or msg.get("subject", "")
+    ha.subject = decode_mime_words(raw_subj).strip() or None
 
     # ------------------------------------------------------------------ Date → UTC ISO 8601
     raw_date = msg.get("Date", "")

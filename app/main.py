@@ -17,6 +17,7 @@ from app.api.v1 import api_v1_router
 from app.api.graph_routes import router as legacy_graph_router
 from app.api.campaign_routes import router as legacy_campaign_router
 from app.api.analyze_routes import router as analyze_router
+from app.api.case_routes import router as case_router
 from app.api.deps import error_response, success_response
 
 logging.basicConfig(
@@ -125,6 +126,10 @@ app.include_router(legacy_campaign_router, prefix="/api/campaigns")
 # Mount Analyze router for Frontend connection (both /api/analyze and /analyze)
 app.include_router(analyze_router, prefix="/api")
 app.include_router(analyze_router)
+
+# Mount Cases router for Case Management
+app.include_router(case_router, prefix="/api/cases")
+app.include_router(case_router, prefix="/cases")
 
 
 @app.get("/health", tags=["Health & Status"])

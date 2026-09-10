@@ -185,11 +185,17 @@ def has_homoglyph(domain: str) -> bool:
     return False
 
 
-# Simple typosquatting: check if domain is 1–2 Levenshtein edits from known brands
+# Simple typosquatting: check if registered domain SLD is 1–2 edits from known brands
 _KNOWN_BRANDS = [
     "google", "microsoft", "amazon", "paypal", "apple", "facebook",
     "netflix", "instagram", "twitter", "linkedin", "dropbox", "github",
 ]
+
+_LEGITIMATE_BRAND_DOMAINS = {
+    "google.com", "microsoft.com", "amazon.com", "paypal.com", "apple.com",
+    "facebook.com", "netflix.com", "instagram.com", "twitter.com", "linkedin.com",
+    "dropbox.com", "github.com", "live.com", "office.com", "outlook.com",
+}
 
 
 def _levenshtein(a: str, b: str) -> int:
@@ -206,12 +212,44 @@ def _levenshtein(a: str, b: str) -> int:
     return prev[-1]
 
 
-def is_typosquat(domain: str) -> bool:
-    """Heuristic: apex domain is ≤2 Levenshtein edits from a known brand."""
-    apex = domain.split(".")[0].lower()
+def is_typosquat(domain: str, registered_domain: str | None = None) -> bool:
+    """
+    Heuristic: registered domain SLD is 1–2 Levenshtein edits from a known brand.
+    Never flags legitimate brand domains (e.g. apps.microsoft.com -> registered: microsoft.com).
+    """
+    if not domain:
+        return False
+
+    domain_lower = domain.lower().strip()
+
+    # If domain itself or registered domain is a known legitimate brand domain, NOT typosquat
+    if domain_lower in _LEGITIMATE_BRAND_DOMAINS:
+        return False
+    if registered_domain and registered_domain.lower() in _LEGITIMATE_BRAND_DOMAINS:
+        return False
+
+    # Extract the SLD (e.g. 'paypa1' from 'paypa1.com' or 'apps.microsoft.com')
+    target = registered_domain or domain_lower
+    parts = target.split(".")
+    if len(parts) >= 2:
+        # e.g. 'microsoft' from 'microsoft.com' or 'paypa1' from 'paypa1.com'
+        sld = parts[-2]
+    else:
+        sld = parts[0]
+
     for brand in _KNOWN_BRANDS:
-        if apex != brand and _levenshtein(apex, brand) <= 2:
-            return True
+        # If SLD is identical to the brand, it's the actual brand name, not a typosquat
+        if sld == brand:
+            return False
+
+        dist = _levenshtein(sld, brand)
+        # For short brand names (<= 4 chars like apple), require strictly 1 edit
+        max_dist = 1 if len(brand) <= 5 else 2
+        if 0 < dist <= max_dist:
+            # Also require at least 65% length similarity
+            if abs(len(sld) - len(brand)) <= 2:
+                return True
+
     return False
 
 

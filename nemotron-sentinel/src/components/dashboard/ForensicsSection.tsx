@@ -60,23 +60,47 @@ export const ForensicsSection: React.FC<ForensicsSectionProps> = ({
           value={forensics.message_id}
           icon={<FileText className="w-4 h-4" />}
           subtitle="Unique SMTP tracking header"
-          className="font-mono text-sm"
+          className="font-mono text-xs truncate"
         />
         <MetricCard
           label="Sender Domain"
           value={forensics.sender_domain}
           icon={<GlobeIcon className="w-4 h-4" />}
-          trend="⚠ High Spoofing Probability"
-          trendColor="red"
-          subtitle="Punycode / Typosquatting inspection"
+          trend={
+            forensics.sender_domain === "unknown"
+              ? "Unresolved Domain"
+              : (forensics.spf_status === "pass" && forensics.dkim_status === "pass")
+              ? "✓ Cryptographically Verified"
+              : (forensics.spf_status === "fail" || forensics.dmarc_status === "fail")
+              ? "⚠ Auth Failure Detected"
+              : "Standard Domain"
+          }
+          trendColor={
+            forensics.sender_domain === "unknown"
+              ? "blue"
+              : (forensics.spf_status === "pass" && forensics.dkim_status === "pass")
+              ? "blue"
+              : (forensics.spf_status === "fail" || forensics.dmarc_status === "fail")
+              ? "red"
+              : "blue"
+          }
+          subtitle="Punycode & Protocol inspection"
         />
         <MetricCard
           label="Origin Host IP"
           value={forensics.origin_ip}
           icon={<Server className="w-4 h-4" />}
-          trend={threatIntel.ip_geolocation.asn.split(" ")[0] || "AS Autonomous"}
-          trendColor="amber"
-          subtitle={`Routed: ${threatIntel.ip_geolocation.country}`}
+          trend={
+            forensics.origin_ip === "unknown"
+              ? "Internal Relay"
+              : (threatIntel.ip_geolocation?.asn?.split(" ")[0] || "AS Autonomous")
+          }
+          trendColor={forensics.origin_ip === "unknown" ? "blue" : "amber"}
+          subtitle={
+            forensics.origin_ip === "unknown"
+              ? "Origin MTA hops internal"
+              : `Routed: ${threatIntel.ip_geolocation?.country || "Unknown"}`
+          }
         />
       </div>
     </motion.section>

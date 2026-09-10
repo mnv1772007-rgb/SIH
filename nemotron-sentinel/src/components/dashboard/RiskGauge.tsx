@@ -6,9 +6,15 @@ import { ShieldAlert, ShieldCheck } from "lucide-react";
 
 interface RiskGaugeProps {
   score: number;
+  title?: string;
+  subtitle?: string;
 }
 
-export const RiskGauge: React.FC<RiskGaugeProps> = ({ score }) => {
+export const RiskGauge: React.FC<RiskGaugeProps> = ({
+  score,
+  title = "FORENSIC THREAT INDEX",
+  subtitle = "Evaluated via multi-stage forensic heuristics",
+}) => {
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
@@ -49,10 +55,10 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({ score }) => {
     if (score >= 50) {
       return {
         label: "HIGH",
-        color: "text-amber-400",
-        badge: "bg-amber-500/20 text-amber-400 border-amber-500/40",
-        glow: "shadow-[0_0_30px_rgba(245,158,11,0.3)]",
-        icon: <ShieldAlert className="w-4 h-4 text-amber-400" />,
+        color: "text-orange-400",
+        badge: "bg-orange-500/20 text-orange-400 border-orange-500/40",
+        glow: "shadow-[0_0_30px_rgba(249,115,22,0.3)]",
+        icon: <ShieldAlert className="w-4 h-4 text-orange-400" />,
       };
     }
     if (score >= 25) {
@@ -88,7 +94,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({ score }) => {
       {/* Header telemetry */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-          AI THREAT SCORE
+          {title}
         </span>
       </div>
 
@@ -159,7 +165,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({ score }) => {
           <span>{severity.label} THREAT DETECTED</span>
         </div>
         <p className="text-xs text-zinc-400 font-mono">
-          Evaluated via multi-stage neural heuristics
+          {subtitle}
         </p>
       </div>
     </motion.div>

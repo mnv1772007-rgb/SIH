@@ -523,126 +523,128 @@ class ThreatIntelClient:
 def enrich_report(report: ForensicReport, client: Optional[ThreatIntelClient] = None) -> ForensicReport:
     """
     Enrich a ForensicReport with live threat intelligence and AI reasoning.
+    All API calls (AbuseIPDB, VT, URLScan, Geo) run in parallel via ThreadPoolExecutor.
     Preserves non-breaking fallback if keys are missing or services fail.
     """
+    from concurrent.futures import ThreadPoolExecutor
+
     if client is None:
         client = ThreatIntelClient()
 
-    ti_summary: dict[str, Any] = {
+    ti_summary: dict = {
         "geolocation": None,
         "abuseipdb": None,
         "virustotal": {"hashes": [], "urls": [], "sending_ip": None},
         "urlscan": [],
     }
 
-    # 1. Enrich Origin Sending IP
     sending_ip = report.origin.probable_sending_ip
-    if sending_ip and classify_ip(sending_ip) == "public":
-        # Geolocation
-        geo = client.geolocate_ip(sending_ip)
+    ip_is_public = sending_ip and classify_ip(sending_ip) == "public"
+    urls_to_scan = report.iocs.urls[:5]
+    hashes_to_check = [(att, att.sha256) for att in report.iocs.attachments if att.sha256]
+
+    futures_map: dict = {}
+    with ThreadPoolExecutor(max_workers=12, thread_name_prefix="ti") as executor:
+        if ip_is_public:
+            futures_map["geo"]   = executor.submit(client.geolocate_ip, sending_ip)
+            futures_map["abuse"] = executor.submit(client.check_abuseipdb, sending_ip)
+        for i, (att, sha) in enumerate(hashes_to_check):
+            futures_map[f"vt_hash_{i}"] = executor.submit(client.check_virustotal_hash, sha)
+        for i, u in enumerate(urls_to_scan):
+            futures_map[f"vt_url_{i}"]  = executor.submit(client.check_virustotal_url, u.url)
+            futures_map[f"urlscan_{i}"] = executor.submit(client.check_urlscan, u.url)
+        results: dict = {}
+        for key, future in futures_map.items():
+            try:
+                results[key] = future.result(timeout=20)
+            except Exception as exc:
+                LOGGER.warning("TI task '%s' failed: %s", key, exc)
+                results[key] = {"status": "error"}
+
+    if ip_is_public:
+        geo = results.get("geo", {})
         if geo.get("status") == "available":
-            report.origin.city = geo.get("city")
-            report.origin.region = geo.get("region")
+            report.origin.city         = geo.get("city")
+            report.origin.region       = geo.get("region")
             report.origin.country_name = geo.get("country") or report.origin.country_name
-            report.origin.isp = geo.get("org") or report.origin.isp
-            report.origin.latitude = geo.get("latitude")
-            report.origin.longitude = geo.get("longitude")
-            ti_summary["geolocation"] = geo
-
-        # AbuseIPDB
-        abuse = client.check_abuseipdb(sending_ip)
+            report.origin.isp          = geo.get("org") or report.origin.isp
+            report.origin.latitude     = geo.get("latitude")
+            report.origin.longitude    = geo.get("longitude")
+            ti_summary["geolocation"]  = geo
+        abuse = results.get("abuse", {})
         if abuse.get("status") == "available":
-            report.origin.abuse_score = abuse.get("abuse_confidence_score")
+            report.origin.abuse_score               = abuse.get("abuse_confidence_score")
             report.origin.threat_intel["abuseipdb"] = abuse
-            ti_summary["abuseipdb"] = abuse
+            ti_summary["abuseipdb"]                 = abuse
             if abuse.get("malicious"):
-                report.risk_signals.append(
-                    RiskSignal(
-                        signal_id="TI_ABUSEIPDB_HIGH_SCORE",
-                        level=RiskLevel.HIGH if abuse.get("abuse_confidence_score", 0) < 75 else RiskLevel.CRITICAL,
-                        category="origin",
-                        description=f"Sending IP {sending_ip} has {abuse.get('abuse_confidence_score')}% abuse confidence on AbuseIPDB",
-                        evidence={"ip": sending_ip, "abuse_score": abuse.get("abuse_confidence_score"), "reports": abuse.get("total_reports")},
-                    )
-                )
+                report.risk_signals.append(RiskSignal(
+                    signal_id="TI_ABUSEIPDB_HIGH_SCORE",
+                    level=RiskLevel.HIGH if abuse.get("abuse_confidence_score", 0) < 75 else RiskLevel.CRITICAL,
+                    category="origin",
+                    description=(
+                        f"Sending IP {sending_ip} has "
+                        f"{abuse.get('abuse_confidence_score')}% abuse confidence on AbuseIPDB"
+                    ),
+                    evidence={"ip": sending_ip, "abuse_score": abuse.get("abuse_confidence_score"), "reports": abuse.get("total_reports")},
+                ))
 
-    # 2. VirusTotal file hash lookups for attachments
-    for att in report.iocs.attachments:
-        if att.sha256:
-            vt_res = client.check_virustotal_hash(att.sha256)
-            ti_summary["virustotal"]["hashes"].append(vt_res)
-            if vt_res.get("malicious"):
-                report.risk_signals.append(
-                    RiskSignal(
-                        signal_id="TI_VIRUSTOTAL_MALICIOUS_ATTACHMENT",
-                        level=RiskLevel.CRITICAL,
-                        category="ioc",
-                        description=f"Attachment '{att.filename}' flagged as malicious by {vt_res.get('malicious_count')} VirusTotal engines",
-                        evidence={"filename": att.filename, "sha256": att.sha256, "detections": vt_res.get("malicious_count")},
-                    )
-                )
+    for i, (att, sha) in enumerate(hashes_to_check):
+        vt_res = results.get(f"vt_hash_{i}", {})
+        ti_summary["virustotal"]["hashes"].append(vt_res)
+        if vt_res.get("malicious"):
+            report.risk_signals.append(RiskSignal(
+                signal_id="TI_VIRUSTOTAL_MALICIOUS_ATTACHMENT",
+                level=RiskLevel.CRITICAL, category="ioc",
+                description=f"Attachment '{att.filename}' flagged as malicious by {vt_res.get('malicious_count')} VirusTotal engines",
+                evidence={"filename": att.filename, "sha256": sha, "detections": vt_res.get("malicious_count")},
+            ))
 
-    # 3. URL Scanning (urlscan.io + VirusTotal) — up to 5 URLs
-    for u in report.iocs.urls[:5]:
-        vt_u = client.check_virustotal_url(u.url)
+    for i, u in enumerate(urls_to_scan):
+        vt_u   = results.get(f"vt_url_{i}", {})
+        us_res = results.get(f"urlscan_{i}", {})
         ti_summary["virustotal"]["urls"].append(vt_u)
+        ti_summary["urlscan"].append(us_res)
         if vt_u.get("malicious"):
             u.suspicious = True
-            report.risk_signals.append(
-                RiskSignal(
-                    signal_id="TI_VIRUSTOTAL_MALICIOUS_URL",
-                    level=RiskLevel.HIGH,
-                    category="ioc",
-                    description=f"URL '{u.defanged}' flagged as malicious by VirusTotal",
-                    evidence={"url": u.defanged, "detections": vt_u.get("malicious_count")},
-                )
-            )
-
-        us_res = client.check_urlscan(u.url)
-        ti_summary["urlscan"].append(us_res)
+            report.risk_signals.append(RiskSignal(
+                signal_id="TI_VIRUSTOTAL_MALICIOUS_URL",
+                level=RiskLevel.HIGH, category="ioc",
+                description=f"URL '{u.defanged}' flagged as malicious by VirusTotal",
+                evidence={"url": u.defanged, "detections": vt_u.get("malicious_count")},
+            ))
         if us_res.get("malicious"):
             u.suspicious = True
-            report.risk_signals.append(
-                RiskSignal(
-                    signal_id="TI_URLSCAN_MALICIOUS_URL",
-                    level=RiskLevel.HIGH,
-                    category="ioc",
-                    description=f"URL '{u.defanged}' flagged malicious on urlscan.io (score: {us_res.get('score')})",
-                    evidence={"url": u.defanged, "score": us_res.get("score"), "categories": us_res.get("categories")},
-                )
-            )
+            report.risk_signals.append(RiskSignal(
+                signal_id="TI_URLSCAN_MALICIOUS_URL",
+                level=RiskLevel.HIGH, category="ioc",
+                description=f"URL '{u.defanged}' flagged malicious on urlscan.io",
+                evidence={"url": u.defanged, "score": us_res.get("score"), "categories": us_res.get("categories")},
+            ))
 
     report.threat_intelligence = ti_summary
 
-    # 4. AI Forensic Assessment — OpenAI primary, Gemini/Nemotron fallback
     context_summary = {
-        "from_address": report.headers.from_address,
-        "subject": report.headers.subject,
-        "spf": report.auth.spf.result.value,
-        "dkim": report.auth.dkim.result.value,
-        "dmarc": report.auth.dmarc.result.value,
-        "sending_ip": report.origin.probable_sending_ip,
-        "geo_country": report.origin.country_name,
-        "urls_count": len(report.iocs.urls),
+        "from_address":      report.headers.from_address,
+        "subject":           report.headers.subject,
+        "spf":               report.auth.spf.result.value,
+        "dkim":              report.auth.dkim.result.value,
+        "dmarc":             report.auth.dmarc.result.value,
+        "sending_ip":        report.origin.probable_sending_ip,
+        "geo_country":       report.origin.country_name,
+        "urls_count":        len(report.iocs.urls),
         "attachments_count": len(report.iocs.attachments),
-        "risk_signals": [s.description for s in report.risk_signals],
+        "risk_signals":      [s.description for s in report.risk_signals],
     }
-
-    ai_res: dict[str, Any] = {}
-
-    # Primary: OpenAI
+    ai_res: dict = {}
     if client.openai_key:
         ai_res = client.analyze_openai(context_summary)
-
-    # Fallback: Google Gemini
     if (not ai_res or ai_res.get("status") not in ("available", None)) and client.gemini_key:
         LOGGER.info("OpenAI unavailable/failed — trying Gemini fallback")
         ai_res = client.analyze_gemini(context_summary)
-
-    # Fallback: NVIDIA Nemotron
     if (not ai_res or ai_res.get("status") not in ("available", None)) and client.nemotron_key:
         LOGGER.info("Gemini unavailable/failed — trying Nemotron fallback")
         ai_res = client.analyze_nemotron(context_summary)
 
     report.ai_assessment = ai_res
     return report
+

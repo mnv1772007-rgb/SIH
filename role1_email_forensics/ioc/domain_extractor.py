@@ -43,7 +43,7 @@ class DomainExtractor:
                 subdomain=ex.subdomain or None,
                 source=source,
                 homoglyph_suspected=has_homoglyph(domain),
-                typosquat_suspected=is_typosquat(domain),
+                typosquat_suspected=is_typosquat(domain, registered_domain=reg),
             )
             seen[domain] = ed
 

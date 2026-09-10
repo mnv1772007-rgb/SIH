@@ -118,24 +118,26 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     14
   );
 
+  // Unified Risk Score across the entire application
+  const unifiedRiskScore = normalizeNumber(raw.risk_score, 0);
+  const aiStatus = typeof rawThreat.ai_status === "string" ? rawThreat.ai_status : undefined;
+
   const rawFlags = rawThreat.threat_intel_flags || rawThreat.flags || rawThreat.iocs || rawThreat.threat_flags || raw.threat_intel_flags;
   // No hardcoded fallback — empty array when no real threat signals exist
   const threatFlags = normalizeStringArray(rawFlags, []);
 
-  const aiNlpIntent = normalizeString(
-    rawThreat.ai_nlp_intent || rawThreat.nlp_intent || rawThreat.intent || rawThreat.predicted_intent || raw.ai_nlp_intent,
-    "Phishing / Social Engineering Attempt"
-  );
+  const aiNlpIntent = rawThreat.ai_nlp_intent || rawThreat.nlp_intent || rawThreat.intent || raw.ai_nlp_intent
+    ? String(rawThreat.ai_nlp_intent || rawThreat.nlp_intent || rawThreat.intent || raw.ai_nlp_intent)
+    : (aiStatus === "not_configured" ? "AI Not Configured" : "Standard Communication");
 
-  const aiConfidence = normalizeNumber(
-    rawThreat.ai_confidence ?? rawThreat.confidence ?? rawThreat.confidence_score,
-    95.0
-  );
+  const aiConfidence = rawThreat.ai_confidence != null
+    ? normalizeNumber(rawThreat.ai_confidence, 0)
+    : normalizeNumber(raw.confidence, 0);
 
-  const aiRiskScore = normalizeNumber(
-    rawThreat.ai_risk_score ?? rawThreat.risk_score ?? rawThreat.riskScore ?? rawThreat.score ?? raw.ai_risk_score,
-    88.0
-  );
+  // If AI provided an explicit risk score, use it; otherwise synchronize with the unified platform forensic risk score
+  const aiRiskScore = rawThreat.ai_risk_score != null
+    ? normalizeNumber(rawThreat.ai_risk_score, unifiedRiskScore)
+    : unifiedRiskScore;
 
   const threatIntel: ThreatIntelData = {
     ip_geolocation: { country, asn, lat, lng, city, region },
@@ -146,7 +148,7 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     ai_risk_score: Math.min(100, Math.max(0, aiRiskScore)),
     ai_executive_summary: typeof rawThreat.ai_executive_summary === "string" ? rawThreat.ai_executive_summary : undefined,
     ai_attack_hypothesis: typeof rawThreat.ai_attack_hypothesis === "string" ? rawThreat.ai_attack_hypothesis : undefined,
-    ai_status: typeof rawThreat.ai_status === "string" ? rawThreat.ai_status : undefined,
+    ai_status: aiStatus,
     abuseipdb: rawThreat.abuseipdb || null,
     virustotal: rawThreat.virustotal || null,
     urlscan: Array.isArray(rawThreat.urlscan) ? rawThreat.urlscan : null,
