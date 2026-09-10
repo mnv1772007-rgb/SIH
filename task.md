@@ -51,3 +51,16 @@
 - [x] pytest tests/test_role1.py -v (41/41 tests passing)
 - [x] CLI smoke test on phishing sample (verified report generation & summary)
 - [x] CLI smoke test on BEC and Legitimate samples (verified)
+
+## Forensic Platform Upgrade & Harmonization
+- [x] Explainable deterministic risk scoring engine (`explainable_scorer.py`)
+- [x] Standardized threat intel status handling (0 penalty for missing/unconfigured APIs)
+- [x] Cryptographic evidence integrity (SHA-256, MD5, SHA-1)
+- [x] Forensic investigation timeline reconstruction (`timeline_builder.py`)
+- [x] Forensic Case Management Service & API (`case_service.py`, `case_routes.py`)
+- [x] Fixed visual text overflow & column bleeding in `VerdictCard.tsx`
+- [x] Fixed false positive typosquatting on legitimate subdomains (e.g. `apps.microsoft.com`)
+- [x] Fixed false positive suspicious flags on trusted domain tracking links (e.g. `linkedin.com`)
+- [x] Harmonized unified threat score between VerdictCard and RiskGauge (no fake 88.0 fallback)
+- [x] Full test suite passing across all modules (83/83 tests green)
+
