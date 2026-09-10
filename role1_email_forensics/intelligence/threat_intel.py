@@ -20,6 +20,7 @@ import os
 import re
 from typing import Any, Optional
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 
 from ..schema.forensic_report import ForensicReport, RiskLevel, RiskSignal
@@ -27,8 +28,9 @@ from ..utils.helpers import classify_ip
 
 LOGGER = logging.getLogger("threat_intel")
 
-# Auto-load .env
-load_dotenv()
+# Auto-load .env from root
+env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Forensic schema keys used to identify the best JSON candidate from LLM output
 _FORENSIC_KEYS = {
@@ -127,10 +129,14 @@ class ThreatIntelClient:
         self.urlscan_key = os.getenv("URLSCAN_API_KEY", "").strip()
         self.abuseipdb_key = os.getenv("ABUSEIPDB_API_KEY", "").strip()
         self.geo_token = (os.getenv("GEOLOCATION_API_KEY") or os.getenv("IPINFO_TOKEN", "")).strip()
+        # OpenAI (primary AI provider)
+        self.openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+        # Legacy fallbacks (kept for backwards compatibility)
         self.nemotron_key = (os.getenv("NEMOTRONS_API_KEY") or os.getenv("NEMOTRON_API_KEY", "")).strip()
         self.nemotron_model = os.getenv("NEMOTRON_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b").strip()
         self.gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
+        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
 
     def _vt_get(self, path: str) -> requests.Response | None:
         """Query VirusTotal with automatic failover across configured keys."""
@@ -383,7 +389,71 @@ class ThreatIntelClient:
                 return {"status": "error", "provider": "NVIDIA Nemotron", "error": str(e)}
         return {"status": "error", "provider": "NVIDIA Nemotron", "error": "All retries exhausted"}
 
-    # ── 6. Google Gemini AI ─────────────────────────────────────────────────
+    # ── 6. OpenAI ────────────────────────────────────────────────────────────
+
+    def analyze_openai(self, context_summary: dict[str, Any]) -> dict[str, Any]:
+        """Generate AI threat assessment using OpenAI Chat Completions API."""
+        if not self.openai_key:
+            return {"status": "not_configured"}
+
+        prompt = (
+            "You are a cybersecurity email threat analyst. Analyze the following email forensic evidence "
+            "and output a strictly valid JSON object with the following schema:\n"
+            "{\n"
+            '  "classification": "phishing" | "bec" | "malware" | "suspicious" | "benign",\n'
+            '  "risk_score": <number 0-100>,\n'
+            '  "confidence": <number 0.0-1.0>,\n'
+            '  "executive_summary": "<string>",\n'
+            '  "attack_hypothesis": "<string>",\n'
+            '  "phishing_tactics": ["<tactic 1>", "..."],\n'
+            '  "recommended_actions": ["<action 1>", "..."]\n'
+            "}\n\n"
+            f"Forensic Evidence:\n"
+            f"- From: {context_summary.get('from_address')}\n"
+            f"- Subject: {context_summary.get('subject')}\n"
+            f"- Auth: SPF={context_summary.get('spf')}, DKIM={context_summary.get('dkim')}, DMARC={context_summary.get('dmarc')}\n"
+            f"- Sender Infrastructure IP: {context_summary.get('sending_ip')} ({context_summary.get('geo_country')})\n"
+            f"- URLs: {context_summary.get('urls_count')}\n"
+            f"- Attachments: {context_summary.get('attachments_count')}\n"
+            f"- Risk Signals: {context_summary.get('risk_signals')}\n"
+        )
+
+        for _attempt in range(2):
+            try:
+                res = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {self.openai_key}",
+                    },
+                    json={
+                        "model": self.openai_model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.2,
+                        "response_format": {"type": "json_object"},
+                    },
+                    timeout=45,
+                )
+                if res.status_code == 200:
+                    raw_text = (
+                        res.json()
+                        .get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                        .strip()
+                    )
+                    return _extract_best_json(raw_text, provider="OpenAI", model=self.openai_model)
+                return {"status": "error", "provider": "OpenAI", "code": res.status_code, "text": res.text[:200]}
+            except requests.Timeout:
+                if _attempt == 0:
+                    LOGGER.warning("OpenAI timeout on attempt 1, retrying...")
+                    continue
+                return {"status": "error", "provider": "OpenAI", "error": "Request timed out after retries"}
+            except Exception as e:
+                return {"status": "error", "provider": "OpenAI", "error": str(e)}
+        return {"status": "error", "provider": "OpenAI", "error": "All retries exhausted"}
+
+    # ── 7. Google Gemini AI ─────────────────────────────────────────────────
 
     def analyze_gemini(self, context_summary: dict[str, Any]) -> dict[str, Any]:
         """Generate AI threat assessment using Google Gemini."""
@@ -544,7 +614,7 @@ def enrich_report(report: ForensicReport, client: Optional[ThreatIntelClient] = 
 
     report.threat_intelligence = ti_summary
 
-    # 4. AI Forensic Assessment — Nemotron primary, Gemini fallback
+    # 4. AI Forensic Assessment — OpenAI primary, Gemini/Nemotron fallback
     context_summary = {
         "from_address": report.headers.from_address,
         "subject": report.headers.subject,
@@ -560,12 +630,17 @@ def enrich_report(report: ForensicReport, client: Optional[ThreatIntelClient] = 
 
     ai_res: dict[str, Any] = {}
 
-    # Primary: Google Gemini (fast, clean JSON output)
-    if client.gemini_key:
+    # Primary: OpenAI
+    if client.openai_key:
+        ai_res = client.analyze_openai(context_summary)
+
+    # Fallback: Google Gemini
+    if (not ai_res or ai_res.get("status") not in ("available", None)) and client.gemini_key:
+        LOGGER.info("OpenAI unavailable/failed — trying Gemini fallback")
         ai_res = client.analyze_gemini(context_summary)
 
-    # Secondary: NVIDIA Nemotron (optional, additional perspective if Gemini failed)
-    if (not ai_res or ai_res.get("status") != "available") and client.nemotron_key:
+    # Fallback: NVIDIA Nemotron
+    if (not ai_res or ai_res.get("status") not in ("available", None)) and client.nemotron_key:
         LOGGER.info("Gemini unavailable/failed — trying Nemotron fallback")
         ai_res = client.analyze_nemotron(context_summary)
 

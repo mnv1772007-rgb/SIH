@@ -5,7 +5,7 @@ import { defaultMockThreatResponse } from "@/data/mockThreatData";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || "http://localhost:8000";
 
-const REQUEST_TIMEOUT_MS = 9000;
+const REQUEST_TIMEOUT_MS = 60000; // 60s — allows time for OpenAI enrichment
 
 /**
  * Checks if the backend server is reachable.
@@ -13,7 +13,7 @@ const REQUEST_TIMEOUT_MS = 9000;
 export async function checkApiHealth(): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: "GET",

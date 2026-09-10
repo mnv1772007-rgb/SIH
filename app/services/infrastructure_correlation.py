@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from app.services.neo4j_service import neo4j_service
 from app.models.graph_models import (
     FrontendNode,

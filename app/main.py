@@ -16,6 +16,7 @@ from app.services.neo4j_service import neo4j_service
 from app.api.v1 import api_v1_router
 from app.api.graph_routes import router as legacy_graph_router
 from app.api.campaign_routes import router as legacy_campaign_router
+from app.api.analyze_routes import router as analyze_router
 from app.api.deps import error_response, success_response
 
 logging.basicConfig(
@@ -120,6 +121,9 @@ app.include_router(api_v1_router, prefix=API_V1_STR)
 # Mount Legacy Routers for backward compatibility with existing SIH modules
 app.include_router(legacy_graph_router, prefix="/api/graph")
 app.include_router(legacy_campaign_router, prefix="/api/campaigns")
+
+# Mount new Analyze router for Frontend connection
+app.include_router(analyze_router, prefix="/api")
 
 
 @app.get("/health", tags=["Health & Status"])

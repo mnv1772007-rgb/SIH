@@ -1,0 +1,67 @@
+From: security-alert@paypa1-secure.com
+To: victim@example.com
+Subject: URGENT: Your PayPal Account Has Been Limited - Action Required
+Date: Wed, 10 Sep 2026 08:23:11 -0500
+Message-ID: <20260910082311.1a2b3c4d@paypa1-secure.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_Part_4821_1234567890"
+Received: from mail.paypa1-secure.com (unknown [185.220.101.45])
+        by mx.example.com (Postfix) with ESMTP id A1B2C3D4E5
+        for <victim@example.com>; Wed, 10 Sep 2026 08:23:15 -0500 (CDT)
+Received: from [192.168.1.100] (unknown [91.108.4.120])
+        by mail.paypa1-secure.com (Postfix) with ESMTPA id F6G7H8I9J0
+        for <victim@example.com>; Wed, 10 Sep 2026 08:23:10 -0500 (CDT)
+Authentication-Results: mx.example.com;
+        spf=fail (domain paypa1-secure.com does not designate 185.220.101.45 as permitted sender)
+        smtp.mailfrom=security-alert@paypa1-secure.com;
+        dkim=none;
+        dmarc=fail (policy=reject) header.from=paypa1-secure.com
+X-Mailer: PHPMailer 5.2.0
+X-Priority: 1 (Highest)
+X-Spam-Status: Yes, score=8.4
+Return-Path: bounce@paypa1-secure.com
+
+------=_Part_4821_1234567890
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html>
+<head><title>PayPal Security Alert</title></head>
+<body style="font-family: Arial, sans-serif;">
+<table width="600" align="center" style="border: 1px solid #ddd;">
+  <tr><td style="background:#003087; padding:20px; text-align:center;">
+    <h1 style="color:white;">PayPal</h1>
+  </td></tr>
+  <tr><td style="padding:30px;">
+    <p>Dear Valued Customer,</p>
+    <p><strong>We have detected unusual activity on your PayPal account.</strong>
+    Your account has been temporarily limited until you confirm your information.</p>
+    <p>Please click the button below to restore your account access <strong>within 24 hours</strong>
+    or your account will be permanently suspended.</p>
+    <p style="text-align:center; margin:30px 0;">
+      <a href="http://paypa1-verify.ru/secure/login?ref=ACC38271&track=email"
+         style="background:#009cde;color:white;padding:15px 30px;text-decoration:none;border-radius:4px;">
+        Confirm My Account
+      </a>
+    </p>
+    <p>If you did not request this, contact us at support@paypa1-secure.com</p>
+    <p>PayPal Security Team</p>
+  </td></tr>
+</table>
+<!-- Tracking pixel -->
+<img src="http://track.paypa1-secure.com/open?uid=victim@example.com&cid=38271" width="1" height="1" />
+</body>
+</html>
+
+------=_Part_4821_1234567890
+Content-Type: application/pdf; name="account_notice.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="account_notice.pdf"
+
+JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwKL0xlbmd0aCAzIDAgUgo+PgpzdHJlYW0K
+eAFLysrRy0otS80rSUzRy0xRKs9ILUpVslIqS00uyklRsgYAV6sJKgplbmRzdHJlYW0KZW5k
+b2JqCjMgMCBvYmoKMjMKZW5kb2JqCjQgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2Vz
+IDUgMCBSCj4+CmVuZG9iago=
+
+------=_Part_4821_1234567890--

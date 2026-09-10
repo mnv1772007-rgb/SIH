@@ -21,8 +21,9 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 
-# Auto-load environment variables (.env)
-load_dotenv()
+# Auto-load environment variables (.env) from root
+env_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # ── Optional FastAPI types for type hints / Pydantic resolution ─────────────
 try:
