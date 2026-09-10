@@ -476,7 +476,7 @@ const GraphScene: React.FC<{
         minDistance={50}
         maxDistance={650}
         autoRotate={isAutoRotating}
-        autoRotateSpeed={0.35} // Very slow, majestic, cinematic pace
+        autoRotateSpeed={0.9} // Smooth, balanced rotational pace
         onStart={onInteractionStart}
         onEnd={onInteractionEnd}
       />

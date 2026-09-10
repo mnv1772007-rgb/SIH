@@ -61,9 +61,9 @@ app = FastAPI(
 # Safe CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS if CORS_ORIGINS else ["*"],
-    allow_credentials=False if "*" in CORS_ORIGINS else True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -122,8 +122,9 @@ app.include_router(api_v1_router, prefix=API_V1_STR)
 app.include_router(legacy_graph_router, prefix="/api/graph")
 app.include_router(legacy_campaign_router, prefix="/api/campaigns")
 
-# Mount new Analyze router for Frontend connection
+# Mount Analyze router for Frontend connection (both /api/analyze and /analyze)
 app.include_router(analyze_router, prefix="/api")
+app.include_router(analyze_router)
 
 
 @app.get("/health", tags=["Health & Status"])
