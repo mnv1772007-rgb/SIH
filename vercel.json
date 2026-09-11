@@ -9,12 +9,20 @@
         "requirementsFile": "api/requirements.txt",
         "excludeFiles": "pyproject.toml"
       }
+    },
+    {
+      "src": "nemotron-sentinel/package.json",
+      "use": "@vercel/next"
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "api/index.py"
-    }
+    { "src": "/health", "dest": "api/index.py" },
+    { "src": "/docs", "dest": "api/index.py" },
+    { "src": "/redoc", "dest": "api/index.py" },
+    { "src": "/openapi.json", "dest": "api/index.py" },
+    { "src": "/analyze(.*)", "dest": "api/index.py" },
+    { "src": "/cases(.*)", "dest": "api/index.py" },
+    { "src": "/api/(.*)", "dest": "api/index.py" },
+    { "src": "/(.*)", "dest": "nemotron-sentinel/$1" }
   ]
 }
