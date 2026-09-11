@@ -2,7 +2,7 @@
 pyproject.toml
 ml/
 /models/
-data/
+/data/
 eval/
 demo/
 docs/
