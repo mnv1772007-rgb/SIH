@@ -18,8 +18,12 @@ class CaseService:
 
     def __init__(self, cases_dir: Optional[Path] = None):
         if cases_dir is None:
-            base_dir = Path(__file__).resolve().parent.parent.parent
-            self.cases_dir = base_dir / "data" / "cases"
+            # Vercel serverless has a read-only filesystem — use /tmp instead
+            if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
+                self.cases_dir = Path("/tmp") / "cases"
+            else:
+                base_dir = Path(__file__).resolve().parent.parent.parent
+                self.cases_dir = base_dir / "data" / "cases"
         else:
             self.cases_dir = Path(cases_dir)
         self.cases_dir.mkdir(parents=True, exist_ok=True)
