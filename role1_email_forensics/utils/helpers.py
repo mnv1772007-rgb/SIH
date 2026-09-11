@@ -174,27 +174,36 @@ _HOMOGLYPH_MAP = {
     "а": "a", "е": "e", "о": "o", "р": "p", "с": "c",
     "х": "x", "у": "y", "і": "i", "ԁ": "d", "ո": "n",
     "ᴵ": "I", "ⅼ": "l", "０": "0", "１": "1",
+    "v": "v", "ν": "v", "ο": "o", "κ": "k",
+}
+
+_LEET_MAP = {
+    "1": "l", "0": "o", "3": "e", "5": "s", "4": "a", "@": "a", "8": "b",
 }
 
 
 def has_homoglyph(domain: str) -> bool:
     """Detect suspected IDN homoglyph characters in a domain."""
-    for ch in domain:
+    if not domain:
+        return False
+    for ch in domain.lower():
         if ch in _HOMOGLYPH_MAP:
             return True
     return False
 
 
-# Simple typosquatting: check if registered domain SLD is 1–2 edits from known brands
+# Known brand targets for spoofing & typosquatting detection
 _KNOWN_BRANDS = [
     "google", "microsoft", "amazon", "paypal", "apple", "facebook",
     "netflix", "instagram", "twitter", "linkedin", "dropbox", "github",
+    "chase", "wellsfargo", "bankofamerica", "citibank", "dhl", "fedex",
 ]
 
 _LEGITIMATE_BRAND_DOMAINS = {
     "google.com", "microsoft.com", "amazon.com", "paypal.com", "apple.com",
     "facebook.com", "netflix.com", "instagram.com", "twitter.com", "linkedin.com",
     "dropbox.com", "github.com", "live.com", "office.com", "outlook.com",
+    "chase.com", "wellsfargo.com", "bankofamerica.com", "citi.com", "dhl.com", "fedex.com",
 }
 
 
@@ -212,42 +221,69 @@ def _levenshtein(a: str, b: str) -> int:
     return prev[-1]
 
 
+def _normalize_leetspeak(token: str) -> str:
+    """Convert common leetspeak substitutions to standard characters."""
+    return "".join(_LEET_MAP.get(c, c) for c in token)
+
+
 def is_typosquat(domain: str, registered_domain: str | None = None) -> bool:
     """
-    Heuristic: registered domain SLD is 1–2 Levenshtein edits from a known brand.
-    Never flags legitimate brand domains (e.g. apps.microsoft.com -> registered: microsoft.com).
+    Detect typosquatting / lookalike domain:
+    - Checks both the full SLD and hyphenated / delimited tokens (e.g. 'paypa1-secure')
+    - Accounts for leetspeak/digit substitutions (e.g. 'paypa1' -> 'paypal')
+    - Compares Levenshtein distance against known target brands
+    - Never flags legitimate brand domains (e.g. apps.microsoft.com).
     """
     if not domain:
         return False
 
     domain_lower = domain.lower().strip()
 
-    # If domain itself or registered domain is a known legitimate brand domain, NOT typosquat
+    # Never flag confirmed legitimate brand domains
     if domain_lower in _LEGITIMATE_BRAND_DOMAINS:
         return False
     if registered_domain and registered_domain.lower() in _LEGITIMATE_BRAND_DOMAINS:
         return False
 
-    # Extract the SLD (e.g. 'paypa1' from 'paypa1.com' or 'apps.microsoft.com')
+    # Extract the SLD (e.g. 'paypa1-secure' from 'paypa1-secure.com')
     target = registered_domain or domain_lower
     parts = target.split(".")
     if len(parts) >= 2:
-        # e.g. 'microsoft' from 'microsoft.com' or 'paypa1' from 'paypa1.com'
         sld = parts[-2]
     else:
         sld = parts[0]
 
+    # Evaluate full SLD and all sub-tokens (e.g. 'paypa1-secure' -> ['paypa1-secure', 'paypa1', 'secure'])
+    tokens = [sld]
+    sub_tokens = re.split(r"[-_.]", sld)
+    for tok in sub_tokens:
+        if tok and tok not in tokens and len(tok) >= 3:
+            tokens.append(tok)
+
     for brand in _KNOWN_BRANDS:
-        # If SLD is identical to the brand, it's the actual brand name, not a typosquat
-        if sld == brand:
+        # Check if entire domain ends with legitimate brand domain
+        if domain_lower == f"{brand}.com" or domain_lower.endswith(f".{brand}.com"):
             return False
 
-        dist = _levenshtein(sld, brand)
-        # For short brand names (<= 4 chars like apple), require strictly 1 edit
-        max_dist = 1 if len(brand) <= 5 else 2
-        if 0 < dist <= max_dist:
-            # Also require at least 65% length similarity
-            if abs(len(sld) - len(brand)) <= 2:
+        for token in tokens:
+            # Check direct leet-normalized match (e.g. 'paypa1' -> 'paypal')
+            normalized_token = _normalize_leetspeak(token)
+            if normalized_token == brand and token != brand:
+                return True
+
+            # If token is identical to brand, but inside a multi-token suspicious domain (e.g. paypal-security-update.com)
+            if token == brand and len(tokens) > 1 and domain_lower not in _LEGITIMATE_BRAND_DOMAINS:
+                return True
+
+            # Levenshtein distance on raw token
+            dist_raw = _levenshtein(token, brand)
+            max_dist = 1 if len(brand) <= 5 else 2
+            if 0 < dist_raw <= max_dist and abs(len(token) - len(brand)) <= 2:
+                return True
+
+            # Levenshtein distance on leet-normalized token
+            dist_norm = _levenshtein(normalized_token, brand)
+            if 0 < dist_norm <= max_dist and abs(len(normalized_token) - len(brand)) <= 2:
                 return True
 
     return False

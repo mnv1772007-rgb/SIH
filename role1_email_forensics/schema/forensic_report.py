@@ -96,6 +96,8 @@ class HeaderAnalysis(BaseModel):
     x_mailer: Optional[str]            = Field(None, description="X-Mailer / User-Agent header")
     x_spam_status: Optional[str]       = Field(None)
     x_spam_score: Optional[float]      = Field(None)
+    x_priority: Optional[str]           = Field(None)
+    recorded_auth: dict[str, Any]       = Field(default_factory=dict, description="Parsed Authentication-Results headers")
     mime_version: Optional[str]        = Field(None)
     content_type: Optional[str]        = Field(None)
     custom_headers: dict[str, str]     = Field(default_factory=dict, description="Any other X-* headers")
@@ -116,6 +118,7 @@ class SpfResult_(BaseModel):
     ip_checked: Optional[str]  = None
     record: Optional[str]      = Field(None, description="Raw SPF TXT record")
     explanation: Optional[str] = None
+    source: str                = Field("live_dns", description="live_dns | recorded_mta_header")
 
 
 class DkimResult_(BaseModel):
@@ -127,6 +130,7 @@ class DkimResult_(BaseModel):
     header_hash: Optional[str]   = None
     body_hash: Optional[str]     = None
     error: Optional[str]         = None
+    source: str                  = Field("live_dns", description="live_dns | recorded_mta_header")
 
 
 class DmarcResult_(BaseModel):
@@ -141,6 +145,7 @@ class DmarcResult_(BaseModel):
     dkim_alignment: Optional[str]  = None
     record: Optional[str]          = None
     error: Optional[str]           = None
+    source: str                    = Field("live_dns", description="live_dns | recorded_mta_header")
 
 
 class ArcResult_(BaseModel):
@@ -321,9 +326,10 @@ class ForensicReport(BaseModel):
     origin: OriginInference         = Field(default_factory=OriginInference)
     risk_signals: list[RiskSignal]  = Field(default_factory=list)
 
-    # Threat Intelligence & AI enrichment (Opt-in via API keys)
+    # Threat Intelligence, ML & AI enrichment
     threat_intelligence: dict[str, Any] = Field(default_factory=dict)
     ai_assessment: dict[str, Any]       = Field(default_factory=dict)
+    ml_assessment: dict[str, Any]       = Field(default_factory=dict, description="Baseline ML classifier predictions")
 
     # Pipeline metadata
     pipeline_version: str           = "1.0.0"

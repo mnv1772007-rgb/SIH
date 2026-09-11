@@ -111,6 +111,22 @@ def generate_risk_signals(report: ForensicReport) -> list[RiskSignal]:
             description="Display name contains '@' — possible identity spoofing",
             evidence={"display_name": h.from_display_name},
         ))
+    if h.x_spam_status and ("yes" in str(h.x_spam_status).lower() or (h.x_spam_score and h.x_spam_score >= 5.0)):
+        signals.append(RiskSignal(
+            signal_id=make_signal_id("header"),
+            level=RiskLevel.HIGH,
+            category="header",
+            description=f"Upstream MTA flagged message as spam (score={h.x_spam_score or h.x_spam_status})",
+            evidence={"x_spam_status": h.x_spam_status, "x_spam_score": h.x_spam_score},
+        ))
+    if h.x_priority and str(h.x_priority).strip().startswith("1"):
+        signals.append(RiskSignal(
+            signal_id=make_signal_id("header"),
+            level=RiskLevel.MEDIUM,
+            category="header",
+            description="Message marked with highest priority flag (urgency coercion tactic)",
+            evidence={"x_priority": h.x_priority},
+        ))
 
     # ---------------------------------------------------------------- SMTP path signals
     for hop in report.smtp_path:

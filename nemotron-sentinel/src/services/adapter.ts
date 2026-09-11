@@ -1,5 +1,4 @@
 import { AnalysisResponse, AuthStatus, ForensicsData, GraphData, GraphNode, ThreatIntelData, RiskBreakdownItem, TimelineEvent } from "@/types/threat-intel";
-import { defaultMockThreatResponse } from "@/data/mockThreatData";
 
 function normalizeAuthStatus(value: unknown): AuthStatus {
   if (typeof value === "boolean") {
@@ -48,17 +47,21 @@ function normalizeStringArray(value: unknown, fallback: string[] = []): string[]
   return fallback;
 }
 
+export function classifyRiskScore(score: number): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
+  if (score >= 75) return "CRITICAL";
+  if (score >= 50) return "HIGH";
+  if (score >= 25) return "MEDIUM";
+  return "LOW";
+}
+
 /**
  * Agnostic Adapter: Tolerates arbitrary key namings, nested vs flat schemas,
  * casing variants, and missing properties from FastAPI or external security backends.
+ * NEVER falls back to mock data — throws error if payload is empty or invalid.
  */
 export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisResponse {
   if (!raw || typeof raw !== "object") {
-    return {
-      ...defaultMockThreatResponse,
-      filename: filename || defaultMockThreatResponse.filename,
-      timestamp: new Date().toISOString(),
-    };
+    throw new Error("Cannot adapt threat intelligence: raw response is empty or not an object");
   }
 
   // Detect whether data is nested in root or sub-objects
@@ -66,18 +69,18 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
   const rawThreat = raw.threat_intel || raw.intel || raw.enrichment || raw.ai_analysis || raw;
   const rawGeo = rawThreat?.ip_geolocation || rawThreat?.geolocation || rawThreat?.geo || raw?.geolocation || raw?.geo || {};
 
-  // Extract forensics
+  // Extract forensics — genuine empty fallbacks only, no fake infrastructure
   const senderDomain = normalizeString(
     rawForensics.sender_domain || rawForensics.senderDomain || rawForensics.domain || rawForensics.sender || raw.sender_domain,
-    "unknown-origin.net"
+    "unknown"
   );
   const originIp = normalizeString(
     rawForensics.origin_ip || rawForensics.originIp || rawForensics.ip || rawForensics.client_ip || raw.origin_ip,
-    "198.51.100.1"
+    "unknown"
   );
   const messageId = normalizeString(
     rawForensics.message_id || rawForensics.messageId || rawForensics.msg_id || raw.message_id,
-    `<${Date.now()}@sentinel-scan.internal>`
+    "N/A"
   );
 
   const spfStatus = normalizeAuthStatus(rawForensics.spf_status ?? rawForensics.spf ?? raw.spf_status ?? raw.spf);
@@ -105,21 +108,42 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     email_body_text: emailBodyText,
   };
 
-  // Extract threat intelligence
-  const lat = normalizeNumber(rawGeo.lat ?? rawGeo.latitude, 55.0084);
-  const lng = normalizeNumber(rawGeo.lng ?? rawGeo.longitude ?? rawGeo.lon, 82.9357);
-  const country = normalizeString(rawGeo.country || rawGeo.country_name || rawGeo.nation, "Unknown Geolocation");
-  const asn = normalizeString(rawGeo.asn || rawGeo.org || rawGeo.isp, "AS Autonomous Network");
+  // Extract threat intelligence — genuine defaults only, no fake coordinates
+  const lat = typeof rawGeo.lat === "number" ? rawGeo.lat : (typeof rawGeo.latitude === "number" ? rawGeo.latitude : 0);
+  const lng = typeof rawGeo.lng === "number" ? rawGeo.lng : (typeof rawGeo.longitude === "number" ? rawGeo.longitude : (typeof rawGeo.lon === "number" ? rawGeo.lon : 0));
+  const country = normalizeString(rawGeo.country || rawGeo.country_name || rawGeo.nation, "Unknown");
+  const asn = normalizeString(rawGeo.asn || rawGeo.org || rawGeo.isp, "Unknown ASN");
   const city = rawGeo.city ? String(rawGeo.city) : undefined;
   const region = rawGeo.region ? String(rawGeo.region) : undefined;
 
-  const domainAgeDays = normalizeNumber(
-    rawThreat.domain_age_days ?? rawThreat.domain_age ?? rawThreat.domainAge ?? raw.domain_age_days,
-    14
-  );
+  const domainAgeDays = typeof rawThreat.domain_age_days === "number"
+    ? rawThreat.domain_age_days
+    : (typeof rawThreat.domain_age === "number" ? rawThreat.domain_age : -1);
 
-  // Unified Risk Score across the entire application
-  const unifiedRiskScore = normalizeNumber(raw.risk_score, 0);
+  // Unified Authoritative Risk Score across the entire application (Backend is Single Source of Truth)
+  // If backend returns null or undefined, do NOT fake 95 or 0. Leave undefined.
+  const rawScore = raw.risk_score != null ? raw.risk_score : (rawThreat?.ai_risk_score != null ? rawThreat.ai_risk_score : null);
+  const unifiedRiskScore = rawScore != null
+    ? Math.min(100, Math.max(0, Math.round(normalizeNumber(rawScore, 0))))
+    : undefined;
+
+  const validLevels = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+  const rawLevel = typeof raw.risk_level === "string" ? raw.risk_level.toUpperCase().trim() : "";
+  const unifiedRiskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | undefined = validLevels.includes(rawLevel)
+    ? (rawLevel as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")
+    : (unifiedRiskScore !== undefined ? classifyRiskScore(unifiedRiskScore) : undefined);
+
+  const rawConf = raw.confidence != null
+    ? normalizeNumber(raw.confidence, 0)
+    : (rawThreat?.ai_confidence != null ? normalizeNumber(rawThreat.ai_confidence, 0) : null);
+  const unifiedConfidence = rawConf != null
+    ? (rawConf > 1.0 ? +(rawConf / 100).toFixed(2) : +rawConf.toFixed(2))
+    : undefined;
+
+  const unifiedVerdict = typeof raw.verdict === "string" && raw.verdict.trim().length > 0
+    ? raw.verdict.trim()
+    : (unifiedRiskLevel ? `${unifiedRiskLevel} RISK` : undefined);
+
   const aiStatus = typeof rawThreat.ai_status === "string" ? rawThreat.ai_status : undefined;
 
   const rawFlags = rawThreat.threat_intel_flags || rawThreat.flags || rawThreat.iocs || rawThreat.threat_flags || raw.threat_intel_flags;
@@ -130,22 +154,16 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     ? String(rawThreat.ai_nlp_intent || rawThreat.nlp_intent || rawThreat.intent || raw.ai_nlp_intent)
     : (aiStatus === "not_configured" ? "AI Not Configured" : "Standard Communication");
 
-  const aiConfidence = rawThreat.ai_confidence != null
-    ? normalizeNumber(rawThreat.ai_confidence, 0)
-    : normalizeNumber(raw.confidence, 0);
-
-  // If AI provided an explicit risk score, use it; otherwise synchronize with the unified platform forensic risk score
-  const aiRiskScore = rawThreat.ai_risk_score != null
-    ? normalizeNumber(rawThreat.ai_risk_score, unifiedRiskScore)
-    : unifiedRiskScore;
+  // Synchronize ai_risk_score with the unified authoritative risk score so RiskGauge and VerdictCard never conflict
+  const aiRiskScore = unifiedRiskScore ?? 0;
 
   const threatIntel: ThreatIntelData = {
     ip_geolocation: { country, asn, lat, lng, city, region },
     domain_age_days: domainAgeDays,
     threat_intel_flags: threatFlags,
     ai_nlp_intent: aiNlpIntent,
-    ai_confidence: aiConfidence,
-    ai_risk_score: Math.min(100, Math.max(0, aiRiskScore)),
+    ai_confidence: unifiedConfidence,
+    ai_risk_score: aiRiskScore,
     ai_executive_summary: typeof rawThreat.ai_executive_summary === "string" ? rawThreat.ai_executive_summary : undefined,
     ai_attack_hypothesis: typeof rawThreat.ai_attack_hypothesis === "string" ? rawThreat.ai_attack_hypothesis : undefined,
     ai_status: aiStatus,
@@ -212,11 +230,11 @@ export function adaptThreatIntelResponse(raw: any, filename?: string): AnalysisR
     timestamp: normalizeString(raw.timestamp, new Date().toISOString()),
     filename: filename || raw.filename || "sample_email.eml",
     email_sha256: typeof raw.email_sha256 === "string" ? raw.email_sha256 : undefined,
-    // Explainable scoring — pass through as-is from backend
-    risk_score: typeof raw.risk_score === "number" ? raw.risk_score : undefined,
-    risk_level: typeof raw.risk_level === "string" ? raw.risk_level as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" : undefined,
-    confidence: typeof raw.confidence === "number" ? raw.confidence : undefined,
-    verdict: typeof raw.verdict === "string" ? raw.verdict : undefined,
+    // Explainable scoring — Single Source of Truth guaranteed
+    risk_score: unifiedRiskScore,
+    risk_level: unifiedRiskLevel,
+    confidence: unifiedConfidence,
+    verdict: unifiedVerdict,
     risk_factors: Array.isArray(raw.risk_factors) ? raw.risk_factors : undefined,
     risk_breakdown: riskBreakdown,
     primary_evidence: Array.isArray(raw.primary_evidence) ? raw.primary_evidence : undefined,

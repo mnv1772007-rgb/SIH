@@ -57,11 +57,19 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function VerdictCard({ data }: VerdictCardProps) {
-  const level = (data.risk_level || "LOW") as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  // Single source of truth: authoritative backend risk_score (fallback to threat_intel only if present)
+  const hasScore = typeof data.risk_score === "number";
+  const score = hasScore ? data.risk_score : (typeof data.threat_intel?.ai_risk_score === "number" ? Math.round(data.threat_intel.ai_risk_score) : null);
+
+  // Derive level if missing using centralized thresholds (75 / 50 / 25)
+  const derivedLevel = score != null ? (score >= 75 ? "CRITICAL" : score >= 50 ? "HIGH" : score >= 25 ? "MEDIUM" : "LOW") : undefined;
+  const level = (data.risk_level || derivedLevel || "LOW") as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   const cfg = LEVEL_CONFIG[level] ?? LEVEL_CONFIG.LOW;
   const VerdictIcon = cfg.icon;
-  const score = data.risk_score ?? 0;
-  const confidence = Math.round((data.confidence ?? 0) * 100);
+
+  // Confidence: prefer data.confidence (0..1), fallback to data.threat_intel?.ai_confidence
+  const rawConf = data.confidence ?? (data.threat_intel?.ai_confidence != null ? (data.threat_intel.ai_confidence <= 1 ? data.threat_intel.ai_confidence : data.threat_intel.ai_confidence / 100) : null);
+  const confidence = rawConf != null ? Math.round(rawConf <= 1 ? rawConf * 100 : rawConf) : null;
   const breakdown = data.risk_breakdown || [];
   const evidence = data.primary_evidence || [];
   const actions = data.recommended_actions || [];
@@ -82,7 +90,7 @@ export function VerdictCard({ data }: VerdictCardProps) {
           <div>
             <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-0.5">FORENSIC VERDICT</p>
             <h2 className={`font-extrabold text-base tracking-tight ${cfg.text}`}>
-              {data.verdict || `${level} RISK`}
+              {data.verdict || (score != null ? `${level} RISK` : "FORENSIC EVALUATION UNAVAILABLE")}
             </h2>
           </div>
         </div>
@@ -90,9 +98,12 @@ export function VerdictCard({ data }: VerdictCardProps) {
         {/* Risk Score Pill */}
         <div className="flex flex-col items-end gap-1">
           <div className={`px-4 py-1.5 rounded-full border font-mono font-extrabold text-2xl ${cfg.badge}`}>
-            {score}<span className="text-sm font-normal opacity-70">/100</span>
+            {score != null ? score : "—"}
+            <span className="text-sm font-normal opacity-70">{score != null ? "/100" : ""}</span>
           </div>
-          <p className="text-[10px] text-zinc-500 font-mono">RISK SCORE &bull; CONFIDENCE {confidence}%</p>
+          <p className="text-[10px] text-zinc-500 font-mono">
+            {score != null ? `RISK SCORE • CONFIDENCE ${confidence != null ? `${confidence}%` : "—"}` : "SCORE UNAVAILABLE"}
+          </p>
         </div>
       </div>
 
@@ -100,7 +111,7 @@ export function VerdictCard({ data }: VerdictCardProps) {
       <div className="w-full h-2 rounded-full bg-white/5 mb-5 overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
+          animate={{ width: score != null ? `${score}%` : "0%" }}
           transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
           className={`h-full rounded-full ${cfg.bar}`}
         />

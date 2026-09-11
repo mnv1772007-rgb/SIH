@@ -45,6 +45,23 @@ def _is_confirmed_malicious(result: dict) -> bool:
     return bool(result.get("malicious"))
 
 
+def classify_risk(risk_score: float) -> str:
+    """Centralized risk classification:
+      0 - 24 : LOW
+      25 - 49 : MEDIUM
+      50 - 74 : HIGH
+      75 - 100: CRITICAL
+    """
+    score = round(risk_score)
+    if score >= 75:
+        return "CRITICAL"
+    elif score >= 50:
+        return "HIGH"
+    elif score >= 25:
+        return "MEDIUM"
+    return "LOW"
+
+
 def compute_explainable_score(report: Any) -> dict[str, Any]:
     """
     Compute a deterministic, explainable risk score from a ForensicReport.
@@ -105,7 +122,7 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
     elif dmarc.result == DmarcResult.PASS:
         telemetry_count += 1
 
-    # ---- 2. Header Anomalies ----------------------------------------------
+    # ---- 2. Header Anomalies & Spam Signals -------------------------------
     h = report.headers
     if h.from_reply_to_mismatch:
         add("REPLY-TO MISMATCH", "header", 10,
@@ -119,6 +136,15 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
         add("DISPLAY NAME SPOOFING", "header", 12,
             f"Display name contains '@' - identity spoofing tactic (name={h.from_display_name})",
             f"Spoofed display name: {h.from_display_name}")
+    if h.x_spam_status and ("yes" in str(h.x_spam_status).lower() or (h.x_spam_score and h.x_spam_score >= 5.0)):
+        spam_score_str = f"score={h.x_spam_score}" if h.x_spam_score else str(h.x_spam_status)
+        add("SPAM FILTER FLAGGED", "header", 12,
+            f"Upstream spam filter flagged message as spam ({spam_score_str})",
+            f"Spam filter flagged: {spam_score_str}")
+    if h.x_priority and str(h.x_priority).strip().startswith("1"):
+        add("HIGH PRIORITY URGENCY", "header", 5,
+            "Sender set message priority to highest (urgency coercion tactic)",
+            "High priority header flag (X-Priority: 1)")
 
     # ---- 3. IOC Signals ---------------------------------------------------
     suspicious_urls = [u for u in report.iocs.urls if u.suspicious]
@@ -141,9 +167,9 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
     typosquat = [d for d in report.iocs.domains if d.typosquat_suspected]
     if typosquat:
         domains_str = ", ".join(d.domain for d in typosquat[:2])
-        add("TYPOSQUAT DOMAIN", "ioc", 10,
-            f"Typosquatting domain(s): {domains_str}",
-            f"Typosquatting domain: {typosquat[0].domain}")
+        add("TYPOSQUAT DOMAIN", "ioc", 12,
+            f"Typosquatting/lookalike domain(s): {domains_str}",
+            f"Typosquat domain: {typosquat[0].domain}")
 
     for att in report.iocs.attachments:
         if att.is_executable:
@@ -152,7 +178,47 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
                 f"Executable attachment: {att.filename}")
             break
 
-    # ---- 4. Origin --------------------------------------------------------
+    # ---- 4. Content & Baseline ML Assessment -------------------------------
+    ml_res = getattr(report, "ml_assessment", {}) or {}
+    if isinstance(ml_res, dict) and ml_res.get("prediction"):
+        pred = ml_res.get("prediction", {})
+        label = str(pred.get("label", "")).lower()
+        conf = float(pred.get("confidence", 0.0))
+        if label in ("phishing", "impersonation", "bec") and conf >= 0.60:
+            ml_pts = min(20, round(conf * 20))
+            add(
+                f"ML CLASSIFIER ({label.upper()})",
+                "content_ml",
+                ml_pts,
+                f"Baseline ML classifier identified {label.upper()} ({round(conf * 100)}% confidence)",
+                f"Baseline ML Model: {label.upper()} ({round(conf * 100)}% confidence)",
+            )
+        elif label == "spam" and conf >= 0.60:
+            ml_pts = min(15, round(conf * 15))
+            add(
+                "ML CLASSIFIER (SPAM)",
+                "content_ml",
+                ml_pts,
+                f"Baseline ML classifier identified SPAM ({round(conf * 100)}% confidence)",
+                f"Baseline ML Model: SPAM ({round(conf * 100)}% confidence)",
+            )
+
+    # Check risk signals for content findings
+    for sig in getattr(report, "risk_signals", []) or []:
+        sig_id = getattr(sig, "signal_id", "")
+        desc = getattr(sig, "description", "")
+        if "urgency" in desc.lower() or "action required" in desc.lower():
+            if not any(f["factor"] == "CONTENT URGENCY PRESSURE" for f in breakdown):
+                add("CONTENT URGENCY PRESSURE", "content_ml", 8,
+                    "Urgency or account suspension pressure language detected in message",
+                    "Urgency/coercion language in body")
+        elif "credential" in desc.lower() or "login prompt" in desc.lower():
+            if not any(f["factor"] == "CREDENTIAL HARVESTING PROMPT" for f in breakdown):
+                add("CREDENTIAL HARVESTING PROMPT", "content_ml", 10,
+                    "Credential harvesting or login verification prompts detected in message",
+                    "Credential prompt in body")
+
+    # ---- 5. Origin --------------------------------------------------------
     origin = report.origin
     if origin.is_tor:
         add("TOR EXIT NODE", "origin", 15,
@@ -163,19 +229,19 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
             f"Sending IP {origin.probable_sending_ip} linked to VPN/anonymizer",
             None)
 
-    # ---- 5. Threat Intel --------------------------------------------------
+    # ---- 6. Threat Intel --------------------------------------------------
     ti = getattr(report, "threat_intelligence", {}) or {}
 
     # AbuseIPDB
     abuse_res = ti.get("abuseipdb") if isinstance(ti, dict) else None
-    if isinstance(abuse_res, dict) and abuse_res.get("status") == "available":
+    if isinstance(abuse_res, dict) and str(abuse_res.get("status", "")).lower() in ("available", "confirmed_malicious", "suspicious"):
         score_val = int(abuse_res.get("abuse_confidence_score", 0))
-        if score_val >= 75:
+        if score_val >= 75 or abuse_res.get("status") == "confirmed_malicious":
             add("MALICIOUS IP (AbuseIPDB)", "origin", 15,
                 f"IP {origin.probable_sending_ip}: {score_val}% abuse confidence, {abuse_res.get('total_reports',0)} reports",
                 f"AbuseIPDB: {score_val}% abuse confidence")
             telemetry_count += 1
-        elif score_val >= 25:
+        elif score_val >= 25 or abuse_res.get("status") == "suspicious":
             add("SUSPICIOUS IP (AbuseIPDB)", "origin", 8,
                 f"IP {origin.probable_sending_ip}: {score_val}% abuse confidence",
                 None)
@@ -217,7 +283,7 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
             f"URL malicious on urlscan.io (score={mal_urlscan[0].get('score',0)})",
             "URLScan.io confirmed malicious URL")
 
-    # Neural AI Threat Intent
+    # Neural AI Threat Intent (Supporting evidence only)
     ai_res = getattr(report, "ai_assessment", {}) or {}
     if isinstance(ai_res, dict) and ai_res.get("status") == "available":
         intent = str(ai_res.get("classification") or "").lower()
@@ -225,58 +291,58 @@ def compute_explainable_score(report: Any) -> dict[str, Any]:
         if ai_conf > 1.0:
             ai_conf = ai_conf / 100.0
         if intent in ("phishing", "bec", "malware", "social_engineering", "suspicious"):
-            pts = 25 if (intent in ("phishing", "malware") and ai_conf >= 0.8) else 15
+            pts = 15 if (intent in ("phishing", "malware") and ai_conf >= 0.8) else 10
             add(
-                f"AI DETECTED INTENT ({intent.upper()})",
+                f"AI SUPPORTING ASSESSMENT ({intent.upper()})",
                 "threat_intel",
                 pts,
-                f"Neural NLP intent model detected {intent.upper()} ({int(ai_conf * 100)}% confidence)",
+                f"Supporting AI model assessment: {intent.upper()} ({int(ai_conf * 100)}% confidence)",
                 f"AI Threat Assessment: {intent.upper()} (Confidence: {int(ai_conf * 100)}%)",
             )
             telemetry_count += 1
 
-    # ---- 6. Score & Level -------------------------------------------------
+    # ---- 7. Score & Centralized Risk Level ---------------------------------
     risk_score = max(0, min(100, round(confirmed_points)))
-    if risk_score >= 85:
-        risk_level = "CRITICAL"
-    elif risk_score >= 60:
-        risk_level = "HIGH"
-    elif risk_score >= 30:
-        risk_level = "MEDIUM"
-    else:
-        risk_level = "LOW"
+    risk_level = classify_risk(risk_score)
 
-    confidence = round(min(1.0, telemetry_count / max(total_sources, 1)), 2)
+    confidence = round(min(1.0, max(0.2, telemetry_count / max(total_sources, 1))), 2)
 
-    # ---- 7. Verdict -------------------------------------------------------
+    # ---- 8. Explainable Verdict -------------------------------------------
     has_auth_fail = any(f["factor"] in ("SPF FAIL", "DKIM FAIL", "DMARC FAIL") for f in breakdown)
     has_malicious = any(f["category"] in ("threat_intel", "ioc") for f in breakdown)
+    has_typo = any(f["factor"] in ("TYPOSQUAT DOMAIN", "HOMOGLYPH DOMAIN") for f in breakdown)
+    has_spam = any(f["factor"] in ("SPAM FILTER FLAGGED", "ML CLASSIFIER (SPAM)") for f in breakdown)
 
     if risk_level == "CRITICAL":
         verdict = ("CRITICAL RISK - CONFIRMED MALICIOUS INDICATORS" if has_malicious
-                   else "CRITICAL RISK - MULTIPLE AUTH & HEADER ANOMALIES")
+                   else "CRITICAL RISK - MULTIPLE AUTH & INFRASTRUCTURE ANOMALIES")
     elif risk_level == "HIGH":
-        if has_auth_fail and has_malicious:
+        if has_typo and (has_auth_fail or has_malicious):
+            verdict = "HIGH RISK - BRAND TYPOSQUATTING & DECEPTION DETECTED"
+        elif has_auth_fail and has_malicious:
             verdict = "HIGH RISK - PHISHING INDICATORS WITH AUTH FAILURE"
         elif has_malicious:
-            verdict = "HIGH RISK - SUSPICIOUS INFRASTRUCTURE DETECTED"
+            verdict = "HIGH RISK - SUSPICIOUS INFRASTRUCTURE & INDICATORS"
         elif has_auth_fail:
-            verdict = "HIGH RISK - AUTHENTICATION ANOMALY"
+            verdict = "HIGH RISK - AUTHENTICATION FAILURE & SPOOFING DETECTED"
         else:
             verdict = "HIGH RISK - MULTIPLE THREAT INDICATORS"
     elif risk_level == "MEDIUM":
-        verdict = "MEDIUM RISK - SUSPICIOUS INDICATORS REQUIRE REVIEW"
+        if has_spam:
+            verdict = "MEDIUM RISK - SPAM / UNWANTED EMAIL DETECTED"
+        else:
+            verdict = "MEDIUM RISK - SUSPICIOUS INDICATORS REQUIRE REVIEW"
     else:
         verdict = ("LOW RISK - NO THREAT INDICATORS DETECTED" if not breakdown
                    else "LOW RISK - MINOR ANOMALIES DETECTED")
 
-    # ---- 8. Actions -------------------------------------------------------
+    # ---- 9. Recommended Actions -------------------------------------------
     if risk_level in ("CRITICAL", "HIGH"):
         actions = [
             "Do not click any embedded links or open attachments.",
             "Quarantine the email and report to security operations.",
             "Verify sender identity through an out-of-band channel.",
-            "Investigate associated infrastructure (IPs, domains, URLs).",
+            "Add extracted domains and IPs to gateway blocklists.",
         ]
         if has_auth_fail:
             actions.append("Review SPF/DKIM/DMARC DNS records for the sender domain.")

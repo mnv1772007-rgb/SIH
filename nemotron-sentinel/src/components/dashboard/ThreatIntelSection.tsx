@@ -26,6 +26,7 @@ import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 interface ThreatIntelSectionProps {
   threatIntel: ThreatIntelData;
   forensics: ForensicsData;
+  riskScore?: number;
 }
 
 // ── Status pill helpers ─────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ function ThreatApiCard({
 export const ThreatIntelSection: React.FC<ThreatIntelSectionProps> = ({
   threatIntel,
   forensics,
+  riskScore,
 }) => {
   const abuseData = threatIntel.abuseipdb as Record<string, unknown> | null | undefined;
   const vtData = threatIntel.virustotal as Record<string, unknown> | null | undefined;
@@ -119,6 +121,7 @@ export const ThreatIntelSection: React.FC<ThreatIntelSectionProps> = ({
   const urlscanResults = Array.isArray(threatIntel.urlscan) ? threatIntel.urlscan as Record<string, unknown>[] : [];
 
   const hasRealApiData = abuseData || vtData || urlscanResults.length > 0;
+  const authoritativeScore = typeof riskScore === "number" ? riskScore : threatIntel.ai_risk_score;
 
   return (
     <motion.section
@@ -130,7 +133,7 @@ export const ThreatIntelSection: React.FC<ThreatIntelSectionProps> = ({
       {/* Left Column: Risk Gauge */}
       <div className="lg:col-span-1">
         <RiskGauge
-          score={threatIntel.ai_risk_score}
+          score={authoritativeScore}
           title="FORENSIC THREAT INDEX"
           subtitle="Harmonized forensic threat evaluation"
         />

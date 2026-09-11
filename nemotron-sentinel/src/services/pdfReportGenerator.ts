@@ -82,8 +82,14 @@ export function generateThreatReportPdf(analysisData: AnalysisResponse): void {
 
   // --- EXECUTIVE THREAT VERDICT BOX ---
   checkPageBreak(36);
-  const isCritical = analysisData.threat_intel.ai_risk_score >= 80;
-  const isHigh = analysisData.threat_intel.ai_risk_score >= 50;
+  const score = typeof analysisData.risk_score === "number"
+    ? analysisData.risk_score
+    : (typeof analysisData.threat_intel?.ai_risk_score === "number" ? Math.round(analysisData.threat_intel.ai_risk_score) : 0);
+  const derivedLevel = score >= 75 ? "CRITICAL" : score >= 50 ? "HIGH" : score >= 25 ? "MEDIUM" : "LOW";
+  const level = (analysisData.risk_level || derivedLevel) as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  const isCritical = level === "CRITICAL";
+  const isHigh = level === "HIGH";
+  const isMedium = level === "MEDIUM";
 
   doc.setFillColor(COLOR_LIGHT_SLATE[0], COLOR_LIGHT_SLATE[1], COLOR_LIGHT_SLATE[2]);
   doc.roundedRect(margin, y, pageWidth - margin * 2, 32, 2, 2, "F");
@@ -101,12 +107,12 @@ export function generateThreatReportPdf(analysisData: AnalysisResponse): void {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(COLOR_DARK_RED[0], COLOR_DARK_RED[1], COLOR_DARK_RED[2]);
-  doc.text(`${analysisData.threat_intel.ai_risk_score.toFixed(1)} / 100`, margin + 6, y + 20);
+  doc.text(`${score} / 100`, margin + 6, y + 20);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text(
-    isCritical ? "CRITICAL SEVERITY" : isHigh ? "HIGH SEVERITY" : "MODERATE SEVERITY",
+    isCritical ? "CRITICAL SEVERITY" : isHigh ? "HIGH SEVERITY" : isMedium ? "MEDIUM SEVERITY" : "LOW SEVERITY",
     margin + 6,
     y + 26
   );
@@ -117,12 +123,15 @@ export function generateThreatReportPdf(analysisData: AnalysisResponse): void {
   doc.setTextColor(COLOR_BLACK[0], COLOR_BLACK[1], COLOR_BLACK[2]);
   doc.text(`Primary Intent: ${analysisData.threat_intel.ai_nlp_intent}`, margin + 55, y + 10);
 
+  const rawConf = analysisData.confidence ?? (analysisData.threat_intel?.ai_confidence != null ? (analysisData.threat_intel.ai_confidence <= 1 ? analysisData.threat_intel.ai_confidence : analysisData.threat_intel.ai_confidence / 100) : 0.85);
+  const confPercent = Math.round(rawConf <= 1 ? rawConf * 100 : rawConf);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_TEXT[0], COLOR_TEXT[1], COLOR_TEXT[2]);
   doc.text(`Target Payload: ${analysisData.filename || "payload.eml"}`, margin + 55, y + 16);
-  doc.text(`Model Confidence: ${analysisData.threat_intel.ai_confidence ?? 95.5}%`, margin + 55, y + 21);
-  doc.text(`Analysis: Cryptographic authentication failure & active social engineering.`, margin + 55, y + 26);
+  doc.text(`Model Confidence: ${confPercent}%`, margin + 55, y + 21);
+  doc.text(analysisData.verdict ? `Verdict: ${analysisData.verdict}` : `Analysis: Cryptographic authentication failure & active social engineering.`, margin + 55, y + 26);
 
   y += 38;
 

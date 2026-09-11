@@ -2,8 +2,11 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
 import hashlib
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from role1_email_forensics.main import analyze_eml_bytes
 from role1_email_forensics.risk.explainable_scorer import compute_explainable_score
@@ -12,7 +15,7 @@ from app.services.case_service import case_service
 
 router = APIRouter()
 
-def build_comprehensive_forensics_graph(report, actual_filename: str) -> dict:
+def build_comprehensive_forensics_graph(report, actual_filename: str, risk_score: float = 0.0) -> dict:
     """
     Constructs a complete multi-hop forensic correlation graph containing every node
     along the transmission and threat path:
@@ -69,7 +72,7 @@ def build_comprehensive_forensics_graph(report, actual_filename: str) -> dict:
             "message_id": report.headers.message_id or "N/A",
             "timestamp": report.headers.date or report.analyzed_at,
             "threatType": "TARGETED EMAIL ARTIFACT",
-            "riskScore": report.ai_assessment.get("risk_score", 85.0),
+            "riskScore": risk_score,
             "protocol": "RFC 5322 MIME"
         }
     )
@@ -388,11 +391,41 @@ async def analyze_email_file(
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
     try:
-        # Run the forensics pipeline without waiting for AI enrichment
-        # (AI enrichment via OpenAI can take 30s+ and causes frontend timeout)
+        # Run the forensics pipeline
         report = analyze_eml_bytes(raw_bytes, filename=actual_filename, enrich=False)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e}")
+
+    # ── Execute Baseline ML Classification (Fast in-memory prediction) ───────────
+    try:
+        from ml.serve.predict import predict_email_threat
+        from role1_email_forensics.parser.eml_parser import parse_eml_bytes
+        from role1_email_forensics.parser.body_extractor import extract_body
+
+        msg_obj, _, _ = parse_eml_bytes(raw_bytes)
+        body_obj = extract_body(msg_obj)
+        body_text = (body_obj.text_plain or "") if body_obj else ""
+        if not body_text and body_obj and body_obj.text_html:
+            body_text = body_obj.text_html
+
+        ml_email_input = {
+            "subject": report.headers.subject or "",
+            "body": body_text,
+            "sender": report.headers.from_address or "",
+            "reply_to": report.headers.reply_to or "",
+            "return_path": report.headers.return_path or "",
+            "spf": report.auth.spf.result.value if hasattr(report.auth.spf.result, "value") else str(report.auth.spf.result),
+            "dkim": report.auth.dkim.result.value if hasattr(report.auth.dkim.result, "value") else str(report.auth.dkim.result),
+            "dmarc": report.auth.dmarc.result.value if hasattr(report.auth.dmarc.result, "value") else str(report.auth.dmarc.result),
+            "urls": [u.url for u in report.iocs.urls],
+            "executable_attachments": sum(1 for a in report.iocs.attachments if a.is_executable),
+            "attachment_count": len(report.iocs.attachments),
+        }
+        ml_res = predict_email_threat(ml_email_input)
+        if isinstance(ml_res, dict) and "prediction" in ml_res:
+            report.ml_assessment = ml_res
+    except Exception as ml_err:
+        logger.warning(f"Baseline ML prediction failed (non-fatal): {ml_err}")
 
     # ── Forensic Evidence Integrity ──────────────────────────────────────────
     email_sha256 = hashlib.sha256(raw_bytes).hexdigest()
@@ -474,6 +507,13 @@ async def analyze_email_file(
     # Real signals only — no hardcoded fallback text
     threat_intel_flags = [sig.description for sig in report.risk_signals]
 
+    ai_nlp_intent = report.ai_assessment.get("classification")
+    ai_conf = report.ai_assessment.get("confidence")
+    if not ai_nlp_intent and getattr(report, "ml_assessment", None) and "prediction" in report.ml_assessment:
+        pred_obj = report.ml_assessment["prediction"]
+        ai_nlp_intent = f"Baseline ML: {str(pred_obj.get('label', '')).upper()}"
+        ai_conf = round(float(pred_obj.get("confidence", 0.0)) * 100, 1)
+
     threat_intel_data = {
         "ip_geolocation": {
             "country": country,
@@ -484,19 +524,24 @@ async def analyze_email_file(
             "region": report.origin.region,
         },
         "threat_intel_flags": threat_intel_flags,
-        "ai_nlp_intent": report.ai_assessment.get("classification"),
-        "ai_confidence": report.ai_assessment.get("confidence"),
-        "ai_risk_score": report.ai_assessment.get("risk_score"),
-        "ai_executive_summary": report.ai_assessment.get("executive_summary"),
-        "ai_attack_hypothesis": report.ai_assessment.get("attack_hypothesis"),
-        "ai_status": report.ai_assessment.get("status"),
+        "ai_nlp_intent": ai_nlp_intent,
+        "ai_confidence": ai_conf,
+        "ai_risk_score": risk_score,
+        "ai_executive_summary": report.ai_assessment.get("executive_summary") or (
+            f"Forensic analysis evaluated a threat score of {risk_score}/100 ({risk_level}). "
+            f"Primary evidence: {', '.join(primary_evidence[:2]) if primary_evidence else 'Standard email markers.'}"
+        ),
+        "ai_attack_hypothesis": report.ai_assessment.get("attack_hypothesis") or (
+            f"Verdict: {verdict}."
+        ),
+        "ai_status": report.ai_assessment.get("status") or ("available" if getattr(report, "ml_assessment", None) else "not_configured"),
         "abuseipdb": (report.threat_intelligence or {}).get("abuseipdb"),
         "virustotal": (report.threat_intelligence or {}).get("virustotal"),
         "urlscan": (report.threat_intelligence or {}).get("urlscan"),
     }
 
     # ── 5. Graph Data ────────────────────────────────────────────────────────
-    graph_data = build_comprehensive_forensics_graph(report, actual_filename)
+    graph_data = build_comprehensive_forensics_graph(report, actual_filename, risk_score)
 
     # ── 6. Final Response & Case Persistence ────────────────────────────────
     response_data = {

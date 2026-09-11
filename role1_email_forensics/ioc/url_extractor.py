@@ -63,6 +63,9 @@ class UrlExtractor:
 
 # ---------------------------------------------------------------------------
 
+import html as html_pkg
+
+
 class _HrefParser(HTMLParser):
     """Extract href= and src= attribute values from HTML."""
     def __init__(self):
@@ -72,8 +75,12 @@ class _HrefParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         for attr, val in attrs:
             if attr in ("href", "src", "action") and val:
-                if val.startswith("http://") or val.startswith("https://"):
-                    self.urls.append(val)
+                val_clean = html_pkg.unescape(val.strip())
+                # Handle defanged hxxp(s)
+                val_clean = re.sub(r"^hxxp", "http", val_clean, flags=re.IGNORECASE)
+                val_clean = val_clean.replace("[.]", ".")
+                if val_clean.startswith("http://") or val_clean.startswith("https://"):
+                    self.urls.append(val_clean)
 
 
 def _extract_from_html(html: str) -> list[str]:
@@ -83,21 +90,38 @@ def _extract_from_html(html: str) -> list[str]:
     except Exception:
         pass
     # Also regex-scan raw HTML (catches obfuscated markup)
-    extra = extract_urls_from_text(html)
-    return list(dict.fromkeys(parser.urls + extra))
+    extra_raw = extract_urls_from_text(html)
+    extra_clean = []
+    for u in extra_raw:
+        u_clean = html_pkg.unescape(u.strip())
+        u_clean = re.sub(r"^hxxp", "http", u_clean, flags=re.IGNORECASE).replace("[.]", ".")
+        extra_clean.append(u_clean)
+
+    # Deduplicate while suppressing truncated URL fragments (e.g. prefix of an existing href)
+    all_urls = list(dict.fromkeys(parser.urls + extra_clean))
+    final_urls: list[str] = []
+    for u in all_urls:
+        # Check if u is a strict prefix/truncated fragment of another longer URL in all_urls
+        is_fragment = any(other != u and other.startswith(u) and len(other) > len(u) for other in all_urls)
+        if not is_fragment and u not in final_urls:
+            final_urls.append(u)
+
+    return final_urls
 
 
 def _build_url(url: str, source: str) -> ExtractedUrl:
-    parsed  = urlparse(url)
-    extracted = tldextract.extract(url)
+    # Normalize defanged prefixes if passed
+    norm_url = re.sub(r"^hxxp", "http", url.strip(), flags=re.IGNORECASE).replace("[.]", ".")
+    parsed = urlparse(norm_url)
+    extracted = tldextract.extract(norm_url)
     reg = getattr(extracted, "top_domain_under_public_suffix", None) or extracted.registered_domain
-    domain = reg or parsed.netloc
+    domain = (reg or parsed.netloc or "").lower()
 
-    suspicious = _is_suspicious(url, extracted)
+    suspicious = _is_suspicious(norm_url, domain, extracted)
 
     return ExtractedUrl(
-        url=url,
-        defanged=defang_url(url),
+        url=norm_url,
+        defanged=defang_url(norm_url),
         domain=domain,
         scheme=parsed.scheme,
         source=source,
@@ -112,25 +136,29 @@ _TRUSTED_URL_DOMAINS = {
 }
 
 
-def _is_suspicious(url: str, extracted: tldextract.tldextract.ExtractResult) -> bool:
-    reg = getattr(extracted, "top_domain_under_public_suffix", None) or extracted.registered_domain or ""
-    is_trusted = reg.lower() in _TRUSTED_URL_DOMAINS
+def _is_suspicious(url: str, domain: str, extracted: tldextract.tldextract.ExtractResult) -> bool:
+    reg = (getattr(extracted, "top_domain_under_public_suffix", None) or extracted.registered_domain or "").lower()
+    is_trusted = reg in _TRUSTED_URL_DOMAINS
 
-    # Numeric IP instead of hostname is always suspicious
+    # 1. Lookalike / typosquat domain
+    from ..utils.helpers import is_typosquat, has_homoglyph
+    if is_typosquat(domain, registered_domain=reg) or has_homoglyph(domain):
+        return True
+
+    # 2. Numeric IP instead of hostname is always suspicious
     if re.match(r"https?://\d+\.\d+\.\d+\.\d+", url):
         return True
 
-    # Suspicious TLD
+    # 3. Suspicious TLD
     if extracted.suffix in _SUSPICIOUS_TLDS:
         return True
 
-    # Phishing / credential harvesting keywords in path or query
-    # (only check path/query if on trusted domain, e.g. open redirects)
+    # 4. Phishing / credential harvesting keywords in path or query
     if _SUSPICIOUS_KEYWORDS.search(url):
         if not is_trusted:
             return True
 
-    # Excessively long URL (>200 chars) on UNTRUSTED domains
+    # 5. Excessively long URL (>200 chars) on UNTRUSTED domains
     if len(url) > 200 and not is_trusted:
         return True
 

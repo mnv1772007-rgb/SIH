@@ -91,6 +91,14 @@ def extract_headers(msg: email.message.Message) -> HeaderAnalysis:
         or msg.get("X-Newsreader")
     )
 
+    # ------------------------------------------------------------------ X-Priority
+    ha.x_priority = (
+        msg.get("X-Priority")
+        or msg.get("Priority")
+        or msg.get("X-MSMail-Priority")
+        or msg.get("Importance")
+    )
+
     # ------------------------------------------------------------------ X-Spam
     ha.x_spam_status = msg.get("X-Spam-Status") or msg.get("X-Spam-Flag")
     score_raw = msg.get("X-Spam-Score", "")
@@ -99,6 +107,18 @@ def extract_headers(msg: email.message.Message) -> HeaderAnalysis:
             ha.x_spam_score = float(score_raw.strip())
         except ValueError:
             pass
+    elif ha.x_spam_status:
+        m = re.search(r"score=([0-9.]+)", ha.x_spam_status, re.IGNORECASE)
+        if m:
+            try:
+                ha.x_spam_score = float(m.group(1))
+            except ValueError:
+                pass
+
+    # ------------------------------------------------------------------ Authentication-Results parsing
+    auth_headers = msg.get_all("Authentication-Results", []) or msg.get_all("authentication-results", [])
+    rcvd_spf = msg.get("Received-SPF", "") or msg.get("received-spf", "")
+    ha.recorded_auth = _parse_auth_results(auth_headers, rcvd_spf)
 
     # ------------------------------------------------------------------ MIME / Content-Type
     ha.mime_version = msg.get("MIME-Version")
@@ -158,3 +178,35 @@ def _clean_angle(value: str | None) -> str | None:
     value = value.strip()
     m = re.search(r"<([^>]+)>", value)
     return m.group(1) if m else value
+
+
+def _parse_auth_results(auth_headers: list[str], rcvd_spf: str) -> dict[str, Any]:
+    """Parse Authentication-Results and Received-SPF headers into verdicts."""
+    out: dict[str, Any] = {}
+    combined = " ".join(auth_headers).lower()
+
+    # SPF verdict
+    spf_m = re.search(r"\bspf\s*=\s*([a-z]+)", combined)
+    if spf_m:
+        out["spf"] = spf_m.group(1)
+    elif rcvd_spf:
+        m = re.search(r"^\s*([a-z]+)", rcvd_spf.strip().lower())
+        if m:
+            out["spf"] = m.group(1)
+
+    # DKIM verdict
+    dkim_m = re.search(r"\bdkim\s*=\s*([a-z]+)", combined)
+    if dkim_m:
+        out["dkim"] = dkim_m.group(1)
+
+    # DMARC verdict
+    dmarc_m = re.search(r"\bdmarc\s*=\s*([a-z]+)", combined)
+    if dmarc_m:
+        out["dmarc"] = dmarc_m.group(1)
+
+    # ARC verdict
+    arc_m = re.search(r"\barc\s*=\s*([a-z]+)", combined)
+    if arc_m:
+        out["arc"] = arc_m.group(1)
+
+    return out

@@ -64,3 +64,11 @@
 - [x] Harmonized unified threat score between VerdictCard and RiskGauge (no fake 88.0 fallback)
 - [x] Full test suite passing across all modules (83/83 tests green)
 
+## Live Services & Website Deployment
+- [x] Fixed `logger` NameError in `app/api/analyze_routes.py`
+- [x] Verified CORS preflight and wildcards (`*`) across all API routes
+- [x] Integrated baseline ML model with live threat classification (`predict_email_threat`)
+- [x] Started FastAPI Uvicorn backend on port `8000` (http://localhost:8000)
+- [x] Started Next.js frontend dev server on port `3000` (http://localhost:3000)
+- [x] Verified end-to-end telemetry: `/health` returns 200, `/api/analyze` returns 200 with complete forensic data
+

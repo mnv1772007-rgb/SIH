@@ -1,8 +1,13 @@
+import os
 import sys
 from pathlib import Path
 import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
+
+# Ensure hermetic fast testing without external API stalls
+os.environ["THREAT_INTELLIGENCE_ENABLED"] = "false"
+os.environ["AI_FORENSIC_ENABLED"] = "false"
 
 # Ensure app package is importable
 repo_root = Path(__file__).resolve().parent.parent

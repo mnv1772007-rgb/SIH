@@ -55,6 +55,7 @@ from .intelligence.threat_intel import enrich_report
 
 from .schema.forensic_report import (
     ForensicReport, AuthResults, IocBundle,
+    SpfResult, DkimResult, DmarcResult, ArcResult,
     SpfResult_, DkimResult_, DmarcResult_, ArcResult_,
 )
 from .utils.helpers import get_domain
@@ -152,6 +153,33 @@ def analyze_eml_bytes(raw: bytes, filename: Optional[str] = None, enrich: Option
     except Exception as e:
         report.processing_errors.append(f"arc_check: {e}")
 
+    # Fallback to authentic recorded MTA headers if live check was NONE / inconclusive
+    rec_auth = getattr(report.headers, "recorded_auth", {}) or {}
+    if auth.spf.result == SpfResult.NONE and "spf" in rec_auth:
+        spf_val = rec_auth["spf"].lower()
+        for member in SpfResult:
+            if member.value == spf_val:
+                auth.spf.result = member
+                auth.spf.source = "recorded_mta_header"
+                auth.spf.explanation = f"Recorded by MTA in Authentication-Results: {spf_val}"
+                break
+
+    if auth.dkim.result == DkimResult.NONE and "dkim" in rec_auth:
+        dkim_val = rec_auth["dkim"].lower()
+        for member in DkimResult:
+            if member.value == dkim_val:
+                auth.dkim.result = member
+                auth.dkim.source = "recorded_mta_header"
+                break
+
+    if auth.dmarc.result == DmarcResult.NONE and "dmarc" in rec_auth:
+        dmarc_val = rec_auth["dmarc"].lower()
+        for member in DmarcResult:
+            if member.value == dmarc_val:
+                auth.dmarc.result = member
+                auth.dmarc.source = "recorded_mta_header"
+                break
+
     report.auth = auth
 
     # ── 6. IOC Extraction ───────────────────────────────────────────────────
@@ -206,6 +234,32 @@ def analyze_eml_bytes(raw: bytes, filename: Optional[str] = None, enrich: Option
             report = enrich_report(report)
         except Exception as e:
             report.processing_errors.append(f"threat_intel_enrichment: {e}")
+
+    # ── 10. Baseline ML Threat Classification ──────────────────────────────
+    if not report.ml_assessment:
+        try:
+            from serve.predict import predict_email_threat
+            body_text = (getattr(body, "text_plain", "") or "") if body else ""
+            if not body_text and body and getattr(body, "text_html", None):
+                body_text = body.text_html
+            ml_input = {
+                "subject": report.headers.subject or "",
+                "body": body_text,
+                "sender": report.headers.from_address or "",
+                "reply_to": report.headers.reply_to or "",
+                "return_path": report.headers.return_path or "",
+                "spf": report.auth.spf.result.value if hasattr(report.auth.spf.result, "value") else str(report.auth.spf.result),
+                "dkim": report.auth.dkim.result.value if hasattr(report.auth.dkim.result, "value") else str(report.auth.dkim.result),
+                "dmarc": report.auth.dmarc.result.value if hasattr(report.auth.dmarc.result, "value") else str(report.auth.dmarc.result),
+                "urls": [u.url for u in report.iocs.urls] if report.iocs and report.iocs.urls else [],
+                "executable_attachments": sum(1 for a in report.iocs.attachments if a.is_executable) if report.iocs else 0,
+                "attachment_count": len(report.iocs.attachments) if report.iocs else 0,
+            }
+            ml_res = predict_email_threat(ml_input)
+            if isinstance(ml_res, dict) and "prediction" in ml_res:
+                report.ml_assessment = ml_res
+        except Exception:
+            pass
 
     return report
 

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, RotateCcw, Globe2, ShieldCheck, Sparkles, FileDown } from "lucide-react";
 import { AnalysisResponse } from "@/types/threat-intel";
-import { defaultMockThreatResponse } from "@/data/mockThreatData";
 import { analyzeEmailFile, analyzeDemoSimulation, checkApiHealth } from "@/services/api";
 import { generateThreatReportPdf } from "@/services/pdfReportGenerator";
 import { Header } from "@/components/dashboard/Header";
@@ -64,35 +63,24 @@ export default function SheildMailDashboard() {
       try {
         const result = await analyzeEmailFile(file);
 
-        // If backend was unreachable, notify user with demo toast
-        if (result.isDemoFallback) {
-          addToast({
-            type: "warning",
-            title: "API Offline — Running in Demo Mode",
-            description:
-              result.message ||
-              "Backend server unreachable. SheildMail has loaded high-fidelity mock threat forensics.",
-            duration: 7000,
-          });
-        } else {
-          addToast({
-            type: "success",
-            title: "Live Analysis Complete",
-            description: `Successfully analyzed payload "${file.name}" via SheildMail API.`,
-            duration: 5000,
-          });
-        }
+        addToast({
+          type: "success",
+          title: "Live Forensic Analysis Complete",
+          description: `Successfully analyzed payload "${file.name}" via SheildMail API.`,
+          duration: 5000,
+        });
 
         setAnalysisData(result.data);
         setShowDashboard(true);
       } catch (err: any) {
+        setAnalysisData(null);
+        setShowDashboard(false);
         addToast({
           type: "error",
           title: "Analysis Failure",
-          description: err?.message || "An unexpected error occurred during payload analysis.",
+          description: err?.message || "Failed to analyze email payload via SheildMail backend.",
+          duration: 10000,
         });
-        setAnalysisData(defaultMockThreatResponse);
-        setShowDashboard(true);
       } finally {
         setIsAnalyzing(false);
       }
@@ -418,6 +406,7 @@ export default function SheildMailDashboard() {
               <ThreatIntelSection
                 threatIntel={analysisData.threat_intel}
                 forensics={analysisData.forensics}
+                riskScore={analysisData.risk_score}
               />
 
               {/* Section C: Force Graph Correlation Network */}

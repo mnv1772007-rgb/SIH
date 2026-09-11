@@ -33,3 +33,5 @@ Thumbs.db
 # Case storage
 data/cases/*.json
 !data/cases/.gitkeep
+.vercel
+.env*

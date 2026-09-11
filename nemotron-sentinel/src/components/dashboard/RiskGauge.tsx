@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 
 interface RiskGaugeProps {
-  score: number;
+  score?: number | null;
   title?: string;
   subtitle?: string;
 }
@@ -15,9 +15,12 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
   title = "FORENSIC THREAT INDEX",
   subtitle = "Evaluated via multi-stage forensic heuristics",
 }) => {
+  const hasScore = typeof score === "number" && !isNaN(score);
+  const numericScore = hasScore ? score : 0;
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
+    if (!hasScore) return;
     let start = 0;
     const duration = 1200;
     const startTime = performance.now();
@@ -27,7 +30,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
       const progress = Math.min(elapsed / duration, 1);
       // easeOutCubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayScore(eased * score);
+      setDisplayScore(eased * numericScore);
 
       if (progress < 1) {
         requestAnimationFrame(animateNumber);
@@ -35,15 +38,26 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
     };
 
     requestAnimationFrame(animateNumber);
-  }, [score]);
+  }, [hasScore, numericScore]);
 
   const radius = 80;
   const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(100, Math.max(0, score)) / 100) * circumference;
+  const offset = hasScore
+    ? circumference - (Math.min(100, Math.max(0, numericScore)) / 100) * circumference
+    : circumference;
 
   const getSeverity = () => {
-    if (score >= 80) {
+    if (!hasScore) {
+      return {
+        label: "NOT EVALUATED",
+        color: "text-zinc-400",
+        badge: "bg-zinc-500/20 text-zinc-400 border-zinc-500/40",
+        glow: "shadow-[0_0_20px_rgba(113,113,122,0.15)]",
+        icon: <ShieldAlert className="w-4 h-4 text-zinc-400" />,
+      };
+    }
+    if (numericScore >= 75) {
       return {
         label: "CRITICAL",
         color: "text-red-400",
@@ -52,7 +66,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
         icon: <ShieldAlert className="w-4 h-4 text-red-400" />,
       };
     }
-    if (score >= 50) {
+    if (numericScore >= 50) {
       return {
         label: "HIGH",
         color: "text-orange-400",
@@ -61,7 +75,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
         icon: <ShieldAlert className="w-4 h-4 text-orange-400" />,
       };
     }
-    if (score >= 25) {
+    if (numericScore >= 25) {
       return {
         label: "MEDIUM",
         color: "text-cyan-400",
@@ -148,10 +162,10 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
         {/* Inner Readout */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="font-mono text-5xl font-extrabold text-white tracking-tighter">
-            {displayScore.toFixed(1)}
+            {hasScore ? displayScore.toFixed(1) : "—"}
           </span>
           <span className="text-[11px] font-mono text-zinc-400 tracking-wider mt-0.5">
-            / 100.0
+            {hasScore ? "/ 100.0" : "NOT EVALUATED"}
           </span>
         </div>
       </div>
@@ -162,7 +176,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-widest border ${severity.badge}`}
         >
           {severity.icon}
-          <span>{severity.label} THREAT DETECTED</span>
+          <span>{hasScore ? `${severity.label} THREAT DETECTED` : "RISK SCORE UNAVAILABLE"}</span>
         </div>
         <p className="text-xs text-zinc-400 font-mono">
           {subtitle}
