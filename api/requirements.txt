@@ -1,0 +1,10 @@
+# Minimal requirements for Vercel serverless API
+# (Excludes ML/torch/cuda — those are for local training only)
+fastapi>=0.109.0
+mangum>=0.17.0
+neo4j>=5.15.0
+networkx>=3.2.1
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+httpx>=0.26.0
+python-multipart>=0.0.9

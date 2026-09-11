@@ -1,0 +1,20 @@
+# Exclude heavy ML files from Vercel build (keeps bundle under 250MB limit)
+pyproject.toml
+ml/
+models/
+data/
+eval/
+demo/
+docs/
+tests/
+*.pt
+*.pth
+*.pkl
+*.h5
+*.onnx
+*.bin
+node_modules/
+nemotron-sentinel/node_modules/
+nemotron-sentinel/.next/
+__pycache__/
+.pytest_cache/
