@@ -1,7 +1,7 @@
 # Exclude heavy ML files from Vercel build (keeps bundle under 250MB limit)
 pyproject.toml
 ml/
-models/
+/models/
 data/
 eval/
 demo/
